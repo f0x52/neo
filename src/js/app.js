@@ -3,8 +3,9 @@ import ReactDOM from 'react-dom';
 import '../scss/layout.scss';
 var create = require('create-react-class');
 var neo = require('../assets/neo_full.png');
+var blank = require('../assets/blank.jpg');
 var loadingGif = require('../assets/loading.gif');
-var homserver = "https://matrix.org";
+var homeserver = "https://matrix.org";
 
 var icon = {
   file: {dark: require('../assets/dark/file.svg'), light: require('../assets/light/file.svg')},
@@ -16,22 +17,61 @@ var App = create({
     let loginJson = {};
     if(localStorage.getItem("loginJson")) {
       loginJson = JSON.parse(localStorage.getItem("loginJson"));
+      this.timer = setInterval(
+        () => this.sync(),
+        2000
+      )
       console.log("loaded loginJson from storage");
     }
     return({
       loginJson: loginJson,
-      json: {},
-      loading: 0
+      json: {rooms:{join:{}}},
+      loading: 0,
+      syncing: 0
     });
   },
 
   setJson: function(json) {
     this.setState({loginJson: json});
     localStorage.setItem("loginJson", JSON.stringify(json));
+    if (json.access_token) {
+      this.timer = setInterval(
+        () => this.sync(),
+        2000
+      )
+    }
   },
 
   setLoading: function(loading) {
     this.setState({loading: loading});
+  },
+
+  componentWillUnmount: function() {
+    if (this.timer != undefined) {
+      clearInterval(this.timer);
+    }
+  },
+
+  sync: function() {
+    if (this.state.syncing) {
+      return;
+    }
+    this.setLoading(1);
+    this.setState({syncing: 1});
+    let url = homeserver + 
+      "/_matrix/client/r0/sync?timeout=30000&access_token=" + 
+      this.state.loginJson.access_token;
+    if(this.state.json.next_batch != undefined) {
+      url = url + "&since=" + this.state.json.next_batch;
+    }
+    fetch(url)
+    .then((response) => response.json())
+    .then((responseJson) => {
+      this.setState({json: responseJson});
+      this.setLoading(0);
+      this.setState({syncing: 0});
+    });
+    clearInterval(this.timer);
   },
 
   render: function() {
@@ -50,8 +90,7 @@ var App = create({
     return (
       <div className="main">
         {loading}
-        <div className="list no-select" id="list">
-        </div>
+        <List json={this.state.json} token={this.state.loginJson.access_token}/>
         <div className="view">
           <div className="messages split" id="message_window">
           </div>
@@ -118,7 +157,7 @@ var Login = create({
       "type": "m.login.password",
       "initial_device_display_name": "Neo Webclient",
     };
-    fetch(homserver + "/_matrix/client/r0/login", {
+    fetch(homeserver + "/_matrix/client/r0/login", {
       body: JSON.stringify(data),
       headers: {
         'content-type': 'application/json'
@@ -136,22 +175,69 @@ var Login = create({
   }
 })
 
-var Main 
+var List = create({
+  render: function() {
+    let rooms = this.props.json.rooms.join;
+    let list = Object.keys(rooms).map((room) => 
+      <RoomEntry key={room} id={room} token={this.props.token}/>
+    );
+    return(
+      <div className="list no-select" id="list">
+        {list}
+      </div>
+    );
+  },
+})
 
 var RoomEntry = create({
+  getInitialState: function() {
+    return ({
+      name: this.props.id,
+      img: blank,
+    });
+  },
+
+  componentDidMount: function() {
+    let url = homeserver +
+      "/_matrix/client/r0/rooms/" +
+      this.props.id +
+      "/state/m.room.name?access_token=" +
+      this.props.token;
+    fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.name != undefined) {
+          this.setState({name: responseJson.name});
+        }
+      })
+
+    url = homeserver +
+      "/_matrix/client/r0/rooms/" +
+      this.props.id +
+      "/state/m.room.avatar?access_token=" +
+      this.props.token;
+    fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if(responseJson.errcode == undefined) {
+          this.setState({img: homeserver + "/_matrix/media/r0/download/" + responseJson.url.substring(6)});
+        }
+      })
+  },
+
   render: function() {
     return (
       <div className="room_item">
-        <input type="radio" className="room_radio"/>
-        <label className="room">
-          <img height="70px" width="70px"/>
-          <span id="name"></span><br/>
-          <span className="timestamp"></span>
-          <span className="last_msg"></span>
-          <span className="ts" style="display: none"></span>
+        <input type="radio" className="room_radio" id={this.props.id + "_radio"} name="room_radio" value={this.props.id}/>
+        <label className="room" id={this.props.id} htmlFor={this.props.id + "_radio"}>
+          <img height="70px" width="70px" src={this.state.img}/>
+          <span id="name">{this.state.name}</span><br/>
+          <span className="timestamp">{this.state.timestamp}</span>
+          <span className="last_msg">{this.state.last_msg}</span>
+          <span className="ts" style={{display: "none"}}>{this.state.ts}</span>
         </label>
       </div>
-  );
+    );
   }
 })
 
