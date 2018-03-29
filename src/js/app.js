@@ -6,6 +6,11 @@ var neo = require('../assets/neo_full.png');
 var loadingGif = require('../assets/loading.gif');
 var homserver = "https://matrix.org";
 
+var icon = {
+  file: {dark: require('../assets/dark/file.svg'), light: require('../assets/light/file.svg')},
+  send: {dark: require('../assets/dark/send.svg'), light: require('../assets/light/send.svg')}
+}
+
 var App = create({
   getInitialState: function() {
     let loginJson = {};
@@ -53,12 +58,12 @@ var App = create({
 
           <div className="input">
             <label htmlFor="">
-              <img src="/img/dark/file.svg" id="file" className="dark"/>
-              <img src="/img/light/file.svg" id="file" className="light"/>
+              <img src={icon.file.dark} id="file" className="dark"/>
+              <img src={icon.file.light} id="file" className="light"/>
             </label>
             <textarea id="text" rows="1" placeholder="Write a message..." spellCheck="false"></textarea>
-            <img src="/img/dark/send.svg" id="send" className="dark"/>
-            <img src="/img/light/send.svg" id="send" className="light"/>
+            <img src={icon.send.dark} id="send" className="dark"/>
+            <img src={icon.send.light} id="send" className="light"/>
           </div>
         </div>
       </div>
