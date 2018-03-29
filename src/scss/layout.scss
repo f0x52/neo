@@ -4,6 +4,14 @@ html, body {
   margin: 0;
 }
 
+.loading {
+  position: fixed;
+  top: 2px;
+  right: 2px;
+  height: 90px;
+  width: 90px;
+}
+
 .login {
   #header {
     height: 40vh;

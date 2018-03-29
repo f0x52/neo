@@ -3,12 +3,14 @@ import ReactDOM from 'react-dom';
 import '../scss/layout.scss';
 var create = require('create-react-class');
 var neo = require('../assets/neo_full.png');
+var loadingGif = require('../assets/loading.gif');
 var homserver = "https://matrix.org";
 
 var App = create({
   getInitialState: function() {
     return({
-      json: {}
+      json: {},
+      loading: 0
     });
   },
 
@@ -16,16 +18,26 @@ var App = create({
     this.setState({json: json});
   },
 
+  setLoading: function(loading) {
+    this.setState({loading: loading});
+  },
+
   render: function() {
+    let loading;
+    if (this.state.loading) {
+      loading = <img className="loading" src={loadingGif} alt="loading"/>
+    }
     if (!this.state.json.access_token) {
       return (
         <div className="login">
-          <Login setJson={this.setJson}/>
+          {loading}
+          <Login setJson={this.setJson} setLoading={this.setLoading}/>
         </div>
       );
     }
     return (
       <div className="main" style="display: none">
+        {loading}
         <div className="list no-select" id="list">
         </div>
         <div className="view">
@@ -87,6 +99,7 @@ var Login = create({
 
   login: function(event) {
     event.preventDefault();
+    this.props.setLoading(1);
     let data = {
       "user": this.state.user,
       "password": this.state.pass,
@@ -100,14 +113,14 @@ var Login = create({
       },
       method: 'POST',
     })
-      .then((response) => response.json())
-      .then((responseJson) => {
-        this.setState({json: responseJson});
-        if(responseJson.access_token != undefined) {
-          this.props.setJson(responseJson);
-        }
-        console.log(responseJson);
-      });
+    .then((response) => response.json())
+    .then((responseJson) => {
+      this.setState({json: responseJson});
+      if(responseJson.access_token != undefined) {
+        this.props.setJson(responseJson);
+      }
+      this.props.setLoading(0);
+    });
   }
 })
 
