@@ -8,14 +8,21 @@ var homserver = "https://matrix.org";
 
 var App = create({
   getInitialState: function() {
+    let loginJson = {};
+    if(localStorage.getItem("loginJson")) {
+      loginJson = JSON.parse(localStorage.getItem("loginJson"));
+      console.log("loaded loginJson from storage");
+    }
     return({
+      loginJson: loginJson,
       json: {},
       loading: 0
     });
   },
 
   setJson: function(json) {
-    this.setState({json: json});
+    this.setState({loginJson: json});
+    localStorage.setItem("loginJson", JSON.stringify(json));
   },
 
   setLoading: function(loading) {
@@ -27,7 +34,7 @@ var App = create({
     if (this.state.loading) {
       loading = <img className="loading" src={loadingGif} alt="loading"/>
     }
-    if (!this.state.json.access_token) {
+    if (!this.state.loginJson.access_token) {
       return (
         <div className="login">
           {loading}
@@ -36,7 +43,7 @@ var App = create({
       );
     }
     return (
-      <div className="main" style="display: none">
+      <div className="main">
         {loading}
         <div className="list no-select" id="list">
         </div>
@@ -45,11 +52,11 @@ var App = create({
           </div>
 
           <div className="input">
-            <label for="">
+            <label htmlFor="">
               <img src="/img/dark/file.svg" id="file" className="dark"/>
               <img src="/img/light/file.svg" id="file" className="light"/>
             </label>
-            <textarea id="text" rows="1" placeholder="Write a message..." spellcheck="false"></textarea>
+            <textarea id="text" rows="1" placeholder="Write a message..." spellCheck="false"></textarea>
             <img src="/img/dark/send.svg" id="send" className="dark"/>
             <img src="/img/light/send.svg" id="send" className="light"/>
           </div>
