@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import '../style.css';
+import '../scss/layout.scss';
 var create = require('create-react-class');
 
 
 var App = create({
   render: function() {
     return (
-      Hello World
+      <span>Hello World</span>
     );
   }
 })

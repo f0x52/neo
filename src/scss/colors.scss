@@ -1,0 +1,88 @@
+$fg: #dedede;
+$bg: #1d1f21;
+$anim_color: #fff;
+
+.light {
+    display: none;
+}
+
+.red    { color: #cc6666}
+.green  { color: #b5bd68}
+.yellow { color: #f0c674}
+.blue   { color: #81a2be}
+.purple { color: #b294bb}
+.cyan   { color: #8abeb7}
+.grey   { color: #c5c8c6}
+
+html {
+    background-color: $bg;
+    color: $fg;
+    font-family: sans-serif;
+}
+
+a {
+    color: darken($fg, 10);
+}
+
+a:hover {
+    color: darken($fg, 5);
+}
+
+.main {
+    .list {
+        background-color: lighten($bg, 1);
+        .room {
+            border: 1px solid black;
+        }
+
+        .timestamp {
+            background-color: lighten($bg, 1);
+        }
+
+        input[type="radio"]:checked + label, input[type="radio"]:checked + label .timestamp {
+             background-color: lighten($bg, 5);
+        }
+    }
+
+    .view {
+        color: lighten($fg, 90);
+        background-color: lighten($bg, 10);
+        .messages {
+            .room_messages {
+                .message {
+                    .timestamp {
+                        color: darken($fg, 45);
+                    }
+                }
+                .in {
+                    background-color: lighten($bg, 4);
+                }
+
+                .out {
+                    background-color: lighten($bg, 1);
+                }
+
+            }
+        }
+
+        .input {
+            background-color: lighten($bg, 5);
+            textarea {
+                color: lighten($fg, 5);
+            }
+        }
+    }
+}
+
+.orbit-spinner .orbit:nth-child(1) {
+    border-bottom: 3px solid $anim_color;
+}
+
+.orbit-spinner .orbit:nth-child(2) {
+    border-right: 3px solid $anim_color;
+}
+
+.orbit-spinner .orbit:nth-child(3) {
+    border-top: 3px solid $anim_color;
+}
+
