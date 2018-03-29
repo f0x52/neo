@@ -2,22 +2,26 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import '../scss/layout.scss';
 var create = require('create-react-class');
+var neo = require('../assets/neo_full.png');
 var homserver = "https://matrix.org";
 
 var App = create({
-  getInitialState() {
+  getInitialState: function() {
     return({
-      user: "",
-      pass: "",
-      homserver: "",
-      token: undefined,
+      json: {}
     });
   },
 
+  setJson: function(json) {
+    this.setState({json: json});
+  },
+
   render: function() {
-    if (!this.state.token) {
+    if (!this.state.json.access_token) {
       return (
-        <Login />
+        <div className="login">
+          <Login setJson={this.setJson}/>
+        </div>
       );
     }
     return (
@@ -44,20 +48,66 @@ var App = create({
 })
 
 var Login = create({
+  getInitialState: function() {
+    return ({
+      user: "",
+      pass: "",
+      error: undefined,
+      json: {},
+    });
+  },
+
   render: function() {
+    let error;
+    if (this.state.json.error != undefined) {
+      error = <span id="error" className="red">{this.state.json.error}</span>
+    }
     return (
-    <div className="login">
       <center>
-        <img id="header" src="/img/neo_full.png"/>
-        <form id="login">
-          <input id="user" type="text" placeholder="username"/><br/>
-            <input id="pass" type="password" placeholder="password"/><br/>
-          <button type="submit">Log in</button>
-        </form>
-        <span id="error" className="red"></span>
-      </center>
-    </div>
+          <img id="header" src={neo}/>
+          <form id="login">
+            <input id="user" type="text" placeholder="username"
+              value={this.state.user} onChange={this.handleUser}/><br/>
+            <input id="pass" type="password" placeholder="password"
+              value={this.state.pass} onChange={this.handlePass}/><br/>
+            <button type="submit" onClick={this.login}>Log in</button>
+          </form>
+          {error}
+        </center>
     );
+  },
+
+  handleUser: function(event) {
+    this.setState({user: event.target.value});
+  },
+
+  handlePass: function(event) {
+    this.setState({pass: event.target.value});
+  },
+
+  login: function(event) {
+    event.preventDefault();
+    let data = {
+      "user": this.state.user,
+      "password": this.state.pass,
+      "type": "m.login.password",
+      "initial_device_display_name": "Neo Webclient",
+    };
+    fetch(homserver + "/_matrix/client/r0/login", {
+      body: JSON.stringify(data),
+      headers: {
+        'content-type': 'application/json'
+      },
+      method: 'POST',
+    })
+      .then((response) => response.json())
+      .then((responseJson) => {
+        this.setState({json: responseJson});
+        if(responseJson.access_token != undefined) {
+          this.props.setJson(responseJson);
+        }
+        console.log(responseJson);
+      });
   }
 })
 
