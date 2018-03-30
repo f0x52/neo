@@ -179,7 +179,7 @@ var List = create({
   render: function() {
     let rooms = this.props.json.rooms.join;
     let list = Object.keys(rooms).map((room) => 
-      <RoomEntry key={room} id={room} token={this.props.token}/>
+      <RoomEntry key={room} id={room} token={this.props.token} />
     );
     return(
       <div className="list no-select" id="list">
@@ -227,7 +227,7 @@ var RoomEntry = create({
 
   render: function() {
     return (
-      <div className="room_item">
+      <div className="room_item" onClick={this.props.roomSwitch}>
         <input type="radio" className="room_radio" id={this.props.id + "_radio"} name="room_radio" value={this.props.id}/>
         <label className="room" id={this.props.id} htmlFor={this.props.id + "_radio"}>
           <img height="70px" width="70px" src={this.state.img}/>
