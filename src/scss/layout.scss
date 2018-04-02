@@ -42,11 +42,7 @@ html, body {
     overflow: hidden;
     overflow-y: auto;
 
-    .room_radio {
-      display: none;
-    }
-
-    label {
+    div {
       height: 70px;
       cursor: pointer;
       display: block;
@@ -99,41 +95,40 @@ html, body {
       flex: 1;
       overflow-x: hidden;
       overflow-y: auto;
-      .room_messages {
-        display: none;
-        height: 100%;
 
-        .message {
-          clear: both;
+      .message {
+        clear: both;
+        margin: 5px;
+        padding: 8px;
+        position: relative;
+        display: inline-flex;
+        min-width: 110px;
+        max-width: 60%;
+        border-radius: 4px;
+
+        img {
+          height: 60px;
+          width: 60px;
+          vertical-align: top;
           margin: 5px;
-          padding: 8px;
-          position: relative;
-          display: inline-flex;
-          min-width: 110px;
-          max-width: 60%;
-          border-radius: 4px;
-          img {
-            height: 60px;
-            vertical-align: top;
-            margin: 5px;
-          }
+          object-fit: cover;
+        }
 
-          div {
-            margin: 5px;
-            display: inline-block;
-            margin-bottom: 20px;
-          }
+        div {
+          margin: 5px;
+          display: inline-block;
+          margin-bottom: 20px;
+        }
 
-          p {
-            margin: 0;
-            display: block;
-          }
+        p {
+          margin: 0;
+          display: block;
+        }
 
-          .timestamp {
-            position: absolute;
-            right: 7px;
-            bottom: 7px;
-          }
+        .timestamp {
+          position: absolute;
+          right: 7px;
+          bottom: 7px;
         }
       }
     }

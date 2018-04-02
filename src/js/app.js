@@ -27,7 +27,8 @@ var App = create({
       loginJson: loginJson,
       json: {rooms:{join:{}}},
       loading: 0,
-      syncing: 0
+      syncing: 0,
+      room: 0
     });
   },
 
@@ -44,6 +45,10 @@ var App = create({
 
   setLoading: function(loading) {
     this.setState({loading: loading});
+  },
+
+  setRoom: function(room) {
+    this.setState({room: room});
   },
 
   componentWillUnmount: function() {
@@ -90,10 +95,11 @@ var App = create({
     return (
       <div className="main">
         {loading}
-        <List json={this.state.json} token={this.state.loginJson.access_token}/>
+        <List room={this.state.room} json={this.state.json} token={this.state.loginJson.access_token} setRoom={this.setRoom}/>
         <div className="view">
-          <div className="messages split" id="message_window">
-          </div>
+        <div className="messages split" id="message_window">
+          <Messages json={this.state.json.rooms.join} room={this.state.room} />
+        </div>
 
           <div className="input">
             <label htmlFor="">
@@ -179,7 +185,7 @@ var List = create({
   render: function() {
     let rooms = this.props.json.rooms.join;
     let list = Object.keys(rooms).map((room) => 
-      <RoomEntry key={room} id={room} token={this.props.token} />
+      <RoomEntry active={this.props.room == room} key={room} id={room} token={this.props.token} setRoom={this.props.setRoom} />
     );
     return(
       <div className="list no-select" id="list">
@@ -227,29 +233,89 @@ var RoomEntry = create({
 
   render: function() {
     return (
-      <div className="room_item" onClick={this.props.roomSwitch}>
-        <input type="radio" className="room_radio" id={this.props.id + "_radio"} name="room_radio" value={this.props.id}/>
-        <label className="room" id={this.props.id} htmlFor={this.props.id + "_radio"}>
+      <div id="room_item" className={this.props.active ? "active" : ""} onClick={() => this.props.setRoom(this.props.id)}>
+        <div id={this.props.id}>
           <img height="70px" width="70px" src={this.state.img}/>
           <span id="name">{this.state.name}</span><br/>
           <span className="timestamp">{this.state.timestamp}</span>
           <span className="last_msg">{this.state.last_msg}</span>
           <span className="ts" style={{display: "none"}}>{this.state.ts}</span>
-        </label>
+        </div>
       </div>
     );
   }
 })
 
-var Message = create({
+var Messages = create({
   render: function() {
+    let rooms = this.props.json;
+    if (this.props.room == 0) {
+      return null;
+    }
+
+    let messages = Object.keys(rooms[this.props.room].timeline.events).map((event_num) =>
+      {
+        let event = rooms[this.props.room].timeline.events[event_num];
+        if (event.type == "m.room.message") {
+          return <Message key={event.event_id} id={event.sender} content={event.content.body}/>
+        }
+      }
+    );
+    return (
+      <div>
+        {this.props.room}
+        {messages}
+      </div>
+    )
+  }
+
+})
+
+var Message = create({
+  getInitialState: function() {
+    return ({
+      name: this.props.id,
+      img: blank,
+    });
+  },
+
+  componentDidMount: function() { //TODO: reuse previous requests for same user, cancel fetch when umnounted
+    let url = homeserver +
+      "/_matrix/client/r0/profile/" +
+      this.props.id +
+      "/displayname?access_token=" +
+      this.props.token;
+    this.nameFetch = fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.displayname != undefined) {
+          this.setState({name: responseJson.displayname});
+        }
+      })
+
+    this.imgFetch = url = homeserver +
+      "/_matrix/client/r0/profile/" +
+      this.props.id +
+      "/avatar_url?access_token=" +
+      this.props.token;
+    fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if(responseJson.errcode == undefined && responseJson.avatar_url != undefined) {
+          this.setState({img: homeserver + "/_matrix/media/r0/thumbnail/" + responseJson.avatar_url.substring(6) + "?width=64&height=64"});
+        }
+      })
+  },
+
+  render: function() {
+    let classArray = ["message", this.props.id, "in"].join(" ");
     return (
       <div className="line">
-        <div className="message" id="event_id">
-          <img/>
+        <div className={classArray} id={this.props.id}>
+          <img src={this.state.img} />
           <div>
-            <b></b><br/>
-            <p></p>
+            <b>{this.state.name}</b><br/>
+            <p>{this.props.content}</p>
           </div>
           <span className="timestamp"></span>
         </div>
