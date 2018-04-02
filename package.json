@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Matrix webclient",
   "author": "f0x",
-  "license": "GPL-3.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "build": "webpack",
     "dev": "webpack-dev-server"
