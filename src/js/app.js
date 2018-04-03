@@ -98,7 +98,7 @@ var App = create({
         <List room={this.state.room} json={this.state.json} token={this.state.loginJson.access_token} setRoom={this.setRoom}/>
         <div className="view">
         <div className="messages split" id="message_window">
-          <Messages json={this.state.json.rooms.join} room={this.state.room} />
+          <Messages json={this.state.json.rooms.join} room={this.state.room} user={this.state.loginJson.user_id} />
         </div>
 
           <div className="input">
@@ -247,17 +247,67 @@ var RoomEntry = create({
 })
 
 var Messages = create({
+  getInitialState: function() {
+    return({
+      userinfo: []
+    })
+  },
+
+  get_userinfo: function(id, token) {
+    let userinfo = this.state.userinfo;
+    userinfo[id] = {};
+    userinfo[id].name = id;
+    userinfo[id].img  = blank;
+    this.setState({userinfo: userinfo});
+
+    let url = homeserver +
+      "/_matrix/client/r0/profile/" +
+      id +
+      "/displayname?access_token=" +
+      token;
+    this.nameFetch = fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.displayname != undefined) {
+          userinfo = this.state.userinfo;
+          userinfo[id].name = responseJson.displayname;
+          this.setState({userinfo: userinfo});
+        }
+      })
+
+    this.imgFetch = url = homeserver +
+      "/_matrix/client/r0/profile/" +
+      id +
+      "/avatar_url?access_token=" +
+      token;
+    fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if(responseJson.errcode == undefined && responseJson.avatar_url != undefined) {
+          userinfo = this.state.userinfo;
+          userinfo[id].img = homeserver + "/_matrix/media/r0/thumbnail/" + responseJson.avatar_url.substring(6) + "?width=64&height=64";
+          this.setState({userinfo: userinfo});
+        }
+      })
+  },
+
   render: function() {
     let rooms = this.props.json;
     if (this.props.room == 0) {
       return null;
     }
 
-    let messages = Object.keys(rooms[this.props.room].timeline.events).map((event_num) =>
-      {
+    let messages = Object.keys(rooms[this.props.room].timeline.events).map((event_num) => {
         let event = rooms[this.props.room].timeline.events[event_num];
+        let time = new Date(event.origin_server_ts)
+        let time_string = time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0");
+
+        if (this.state.userinfo[event.sender] == undefined) {
+          this.get_userinfo(event.sender, this.props.json.access_token);
+        }
+
         if (event.type == "m.room.message") {
-          return <Message key={event.event_id} id={event.sender} content={event.content.body}/>
+          return <Message key={event.event_id} info={this.state.userinfo[event.sender]} id={event.sender} content={event.content.body} timestamp={time_string} source={event.sender == this.props.user ? "out" : "in"} />
         }
       }
     );
@@ -272,52 +322,17 @@ var Messages = create({
 })
 
 var Message = create({
-  getInitialState: function() {
-    return ({
-      name: this.props.id,
-      img: blank,
-    });
-  },
-
-  componentDidMount: function() { //TODO: reuse previous requests for same user, cancel fetch when umnounted
-    let url = homeserver +
-      "/_matrix/client/r0/profile/" +
-      this.props.id +
-      "/displayname?access_token=" +
-      this.props.token;
-    this.nameFetch = fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if (responseJson.displayname != undefined) {
-          this.setState({name: responseJson.displayname});
-        }
-      })
-
-    this.imgFetch = url = homeserver +
-      "/_matrix/client/r0/profile/" +
-      this.props.id +
-      "/avatar_url?access_token=" +
-      this.props.token;
-    fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if(responseJson.errcode == undefined && responseJson.avatar_url != undefined) {
-          this.setState({img: homeserver + "/_matrix/media/r0/thumbnail/" + responseJson.avatar_url.substring(6) + "?width=64&height=64"});
-        }
-      })
-  },
-
   render: function() {
-    let classArray = ["message", this.props.id, "in"].join(" ");
+    let classArray = ["message", this.props.id, this.props.source].join(" ");
     return (
       <div className="line">
         <div className={classArray} id={this.props.id}>
-          <img src={this.state.img} />
+          <img src={this.props.info.img} />
           <div>
-            <b>{this.state.name}</b><br/>
+            <b>{this.props.info.name}</b><br/>
             <p>{this.props.content}</p>
           </div>
-          <span className="timestamp"></span>
+          <span className="timestamp">{this.props.timestamp}</span>
         </div>
       </div>
     );

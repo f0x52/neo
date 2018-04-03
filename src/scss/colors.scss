@@ -60,20 +60,11 @@ a:hover {
     background-color: $bg;
     border: 1px solid lighten($bg, 10);
     .messages {
-      .room_messages {
-        .message {
-          .timestamp {
-            color: darken($fg, 45);
-          }
+      .message {
+        background-color: lighten($bg, 4);
+        .timestamp {
+          color: darken($fg, 45);
         }
-        .in {
-          background-color: lighten($bg, 4);
-        }
-
-        .out {
-          background-color: lighten($bg, 1);
-        }
-
       }
     }
 
