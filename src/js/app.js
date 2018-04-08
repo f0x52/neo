@@ -235,7 +235,7 @@ var RoomEntry = create({
     return (
       <div id="room_item" className={this.props.active ? "active" : ""} onClick={() => this.props.setRoom(this.props.id)}>
         <div id={this.props.id}>
-          <img height="70px" width="70px" src={this.state.img}/>
+          <img height="70px" width="70px" src={this.state.img} onError={(e)=>{e.target.src = blank}}/>
           <span id="name">{this.state.name}</span><br/>
           <span className="timestamp">{this.state.timestamp}</span>
           <span className="last_msg">{this.state.last_msg}</span>
@@ -327,7 +327,7 @@ var Message = create({
     return (
       <div className="line">
         <div className={classArray} id={this.props.id}>
-          <img src={this.props.info.img} />
+          <img src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
           <div>
             <b>{this.props.info.name}</b><br/>
             <p>{this.props.content}</p>
