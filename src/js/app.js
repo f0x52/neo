@@ -71,12 +71,12 @@ var App = create({
     }
     fetch(url)
     .then((response) => response.json())
-    .then((responseJson) => {
-      this.setState({json: responseJson});
-      this.setLoading(0);
-      this.setState({syncing: 0});
+      .then((responseJson) => {
+        let json = this.state.json;
+        this.setState({json: json});
+        this.setLoading(0);
+        this.setState({syncing: 0});
     });
-    clearInterval(this.timer);
   },
 
   render: function() {
@@ -100,18 +100,91 @@ var App = create({
         <div className="messages split" id="message_window">
           <Messages json={this.state.json.rooms.join} room={this.state.room} user={this.state.loginJson.user_id} />
         </div>
-
           <div className="input">
             <label htmlFor="">
               <img src={icon.file.dark} id="file" className="dark"/>
               <img src={icon.file.light} id="file" className="light"/>
             </label>
-            <textarea id="text" rows="1" placeholder="Write a message..." spellCheck="false"></textarea>
+            <Send room={this.state.room} token={this.state.loginJson.access_token} />
             <img src={icon.send.dark} id="send" className="dark"/>
             <img src={icon.send.light} id="send" className="light"/>
           </div>
         </div>
       </div>
+    );
+  }
+})
+
+var observe = function (element, event, handler) {
+  element.addEventListener(event, handler, false)
+}
+
+function extend(obj, src) {
+    Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
+    return obj;
+}
+
+var Send = create({
+  componentDidMount: function() {
+    var textarea = document.getElementById('text')
+    observe(textarea, 'change',  this.resize_textarea);
+    observe(textarea, 'cut',     this.resize_textarea_delayed);
+    observe(textarea, 'paste',   this.resize_textarea_delayed);
+    observe(textarea, 'drop',    this.resize_textarea_delayed);
+    observe(textarea, 'keydown', this.resize_textarea_delayed);
+    observe(textarea, 'keydown', this.shift_enter);
+
+    observe(document.getElementById('send'), 'click', this.send);
+  },
+
+  shift_enter: function(event) {
+    if (event.keyCode == 13 && !event.shiftKey) {
+      event.preventDefault();
+      this.send()
+    }
+  },
+
+  resize_textarea: function() {
+    var textarea = document.getElementById('text')
+    textarea.style.height = 'auto'
+    textarea.style.height = text.scrollHeight+'px'
+  },
+
+  resize_textarea_delayed: function() {
+    window.setTimeout(this.resize_textarea, 5);
+  },
+
+  send: function() {
+    var textarea = document.getElementById('text')
+    if(textarea.value != "") {
+        var msg = textarea.value.replace(/^\s+|\s+$/g, '')
+        textarea.value = ""
+        var unixtime = Date.now()
+
+        var url = homeserver+"/_matrix/client/r0/rooms/" + this.props.room + "/send/m.room.message/" + unixtime + "?access_token=" + this.props.token
+        var body = {
+            "msgtype": "m.text",
+            "body": msg,
+        }
+
+        fetch(url, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => res.json())
+        .catch(error => console.error('Error:', error))
+        .then(response => console.log('Success:', response));
+    }
+    console.log(msg);
+    textarea.value = "";
+    this.resize_textarea();
+  },
+
+  render: function() {
+    return (
+      <textarea id="text" rows="1" placeholder="Write a message..." spellCheck="false"></textarea>
     );
   }
 })
