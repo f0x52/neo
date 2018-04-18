@@ -75,30 +75,21 @@ var App = create({
     .then((response) => response.json())
       .then((responseJson) => {
         let rooms = responseJson.rooms.join;
+        let roomsState = this.state.rooms;
         let messages = this.state.messages;
         for(let roomid in rooms) {
           let events = rooms[roomid].timeline.events;
-          if (roomid == "!cKemOooDHXgeUhGwnr:matrix.org") {
-            console.log(events);
-          }
           if (messages[roomid] != undefined) {
             messages[roomid].concat(events);
             for (let event in events) {
               messages[roomid].push(events[event]);
             }
           } else {
-            console.log("adding room " + roomid + " with no history");
             messages[roomid] = events;
           }
-          //messages[roomid].sort(function(a, b) {a.origin_server_ts-b.origin_server_ts});
+          messages[roomid].sort(function(a, b) {a.origin_server_ts-b.origin_server_ts});
+          roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
         }
-
-        let roomsState = this.state.rooms.concat(Object.keys(responseJson.rooms.join));
-        let s = new Set(roomsState); // Remove duplicates
-        let it = s.values();
-        roomsState = Array.from(it);
-
-
         this.setState({messages: messages, json: responseJson, rooms: roomsState});
         this.setLoading(0);
         this.setState({syncing: 0});
@@ -283,8 +274,10 @@ var Login = create({
 var List = create({
   render: function() {
     let rooms = this.props.rooms;
-    let list = rooms.map((room) => 
-      <RoomEntry active={this.props.room == room} key={room} id={room} token={this.props.token} setRoom={this.props.setRoom} />
+    console.log(rooms);
+    rooms.sort(function(a, b) {a[a.length-1].origin_server_ts - b[b.length-1].origin_server_ts});
+    let list = Object.keys(rooms).map((roomid) => 
+      <RoomEntry lastEvent={rooms[roomid]} active={this.props.room == roomid} key={roomid} id={roomid} token={this.props.token} setRoom={this.props.setRoom} />
     );
     return(
       <div className="list no-select" id="list">
@@ -336,9 +329,8 @@ var RoomEntry = create({
         <div id={this.props.id}>
           <img height="70px" width="70px" src={this.state.img} onError={(e)=>{e.target.src = blank}}/>
           <span id="name">{this.state.name}</span><br/>
-          <span className="timestamp">{this.state.timestamp}</span>
+          <span className="timestamp">{this.props.lastEvent.origin_server_ts}</span>
           <span className="last_msg">{this.state.last_msg}</span>
-          <span className="ts" style={{display: "none"}}>{this.state.ts}</span>
         </div>
       </div>
     );
