@@ -8,8 +8,14 @@ var loadingGif = require('../assets/loading.gif');
 var homeserver = "https://matrix.org";
 
 var icon = {
-  file: {dark: require('../assets/dark/file.svg'), light: require('../assets/light/file.svg')},
-  send: {dark: require('../assets/dark/send.svg'), light: require('../assets/light/send.svg')}
+  file: {
+    dark: require('../assets/dark/file.svg'),
+    light: require('../assets/light/file.svg')
+  },
+  send: {
+    dark: require('../assets/dark/send.svg'),
+    light: require('../assets/light/send.svg')
+  }
 }
 
 var App = create({
@@ -87,10 +93,18 @@ var App = create({
           } else {
             messages[roomid] = events;
           }
-          messages[roomid].sort(function(a, b) {a.origin_server_ts-b.origin_server_ts});
+          messages[roomid].sort(
+            function(a, b) {
+              a.origin_server_ts-b.origin_server_ts
+            }
+          );
           roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
         }
-        this.setState({messages: messages, json: responseJson, rooms: roomsState});
+        this.setState({
+          messages: messages,
+          json: responseJson,
+          rooms: roomsState
+        });
         this.setLoading(0);
         this.setState({syncing: 0});
     });
@@ -112,17 +126,31 @@ var App = create({
     return (
       <div className="main">
         {loading}
-        <List room={this.state.room} rooms={this.state.rooms} json={this.state.json} token={this.state.loginJson.access_token} setRoom={this.setRoom}/>
+        <List
+          room={this.state.room}
+          rooms={this.state.rooms}
+          json={this.state.json}
+          token={this.state.loginJson.access_token}
+          setRoom={this.setRoom}
+        />
         <div className="view">
         <div className="messages split" id="message_window">
-          <Messages messages={this.state.messages[this.state.room]} json={this.state.json} room={this.state.room} user={this.state.loginJson.user_id} />
+          <Messages
+            messages={this.state.messages[this.state.room]}
+            json={this.state.json}
+            room={this.state.room}
+            user={this.state.loginJson.user_id}
+          />
         </div>
           <div className="input">
             <label htmlFor="">
               <img src={icon.file.dark} id="file" className="dark"/>
               <img src={icon.file.light} id="file" className="light"/>
             </label>
-            <Send room={this.state.room} token={this.state.loginJson.access_token} />
+            <Send
+              room={this.state.room}
+              token={this.state.loginJson.access_token}
+            />
             <img src={icon.send.dark} id="send" className="dark"/>
             <img src={icon.send.light} id="send" className="light"/>
           </div>
@@ -178,7 +206,14 @@ var Send = create({
         textarea.value = ""
         var unixtime = Date.now()
 
-        var url = homeserver+"/_matrix/client/r0/rooms/" + this.props.room + "/send/m.room.message/" + unixtime + "?access_token=" + this.props.token
+        var url = homeserver +
+        "/_matrix/client/r0/rooms/" +
+        this.props.room +
+        "/send/m.room.message/" +
+        unixtime +
+        "?access_token=" +
+        this.props.token
+
         var body = {
             "msgtype": "m.text",
             "body": msg,
@@ -201,7 +236,12 @@ var Send = create({
 
   render: function() {
     return (
-      <textarea id="text" rows="1" placeholder="Write a message..." spellCheck="false"></textarea>
+      <textarea
+        id="text"
+        rows="1"
+        placeholder="Write a message..."
+        spellCheck="false">
+      </textarea>
     );
   }
 })
@@ -275,9 +315,20 @@ var List = create({
   render: function() {
     let rooms = this.props.rooms;
     console.log(rooms);
-    rooms.sort(function(a, b) {a[a.length-1].origin_server_ts - b[b.length-1].origin_server_ts});
+    rooms.sort(
+      function(a, b) {
+        a[a.length-1].origin_server_ts - b[b.length-1].origin_server_ts
+      }
+    );
     let list = Object.keys(rooms).map((roomid) => 
-      <RoomEntry lastEvent={rooms[roomid]} active={this.props.room == roomid} key={roomid} id={roomid} token={this.props.token} setRoom={this.props.setRoom} />
+      <RoomEntry
+        lastEvent={rooms[roomid]}
+        active={this.props.room == roomid}
+        key={roomid}
+        id={roomid}
+        token={this.props.token}
+        setRoom={this.props.setRoom}
+      />
     );
     return(
       <div className="list no-select" id="list">
@@ -318,19 +369,37 @@ var RoomEntry = create({
       .then(response => response.json())
       .then(responseJson => {
         if(responseJson.errcode == undefined) {
-          this.setState({img: homeserver + "/_matrix/media/r0/download/" + responseJson.url.substring(6)});
+          this.setState({
+            img: homeserver +
+            "/_matrix/media/r0/download/" +
+            responseJson.url.substring(6)
+          });
         }
       })
   },
 
   render: function() {
     return (
-      <div id="room_item" className={this.props.active ? "active" : ""} onClick={() => this.props.setRoom(this.props.id)}>
+      <div
+        id="room_item"
+        className={this.props.active ? "active" : ""}
+        onClick={() => this.props.setRoom(this.props.id)}>
         <div id={this.props.id}>
-          <img height="70px" width="70px" src={this.state.img} onError={(e)=>{e.target.src = blank}}/>
-          <span id="name">{this.state.name}</span><br/>
-          <span className="timestamp">{this.props.lastEvent.origin_server_ts}</span>
-          <span className="last_msg">{this.state.last_msg}</span>
+          <img
+            height="70px"
+            width="70px"
+            src={this.state.img}
+            onError={(e)=>{e.target.src = blank}}
+          />
+          <span id="name">
+            {this.state.name}
+          </span><br/>
+          <span className="timestamp">
+            {this.props.lastEvent.origin_server_ts}
+          </span>
+          <span className="last_msg">
+            {this.state.last_msg}
+          </span>
         </div>
       </div>
     );
@@ -374,9 +443,13 @@ var Messages = create({
     fetch(url)
       .then(response => response.json())
       .then(responseJson => {
-        if(responseJson.errcode == undefined && responseJson.avatar_url != undefined) {
+        if(responseJson.errcode == undefined &&
+          responseJson.avatar_url != undefined) {
           userinfo = this.state.userinfo;
-          userinfo[id].img = homeserver + "/_matrix/media/r0/thumbnail/" + responseJson.avatar_url.substring(6) + "?width=64&height=64";
+          userinfo[id].img = homeserver +
+            "/_matrix/media/r0/thumbnail/" +
+            responseJson.avatar_url.substring(6) +
+            "?width=64&height=64";
           this.setState({userinfo: userinfo});
         }
       })
@@ -390,14 +463,24 @@ var Messages = create({
     let messages = Object.keys(this.props.messages).map((event_num) => {
         let event = this.props.messages[event_num];
         let time = new Date(event.origin_server_ts)
-        let time_string = time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0");
+        let time_string = time.getHours().toString().padStart(2, "0") +
+          ":" + time.getMinutes().toString().padStart(2, "0");
 
         if (this.state.userinfo[event.sender] == undefined) {
           this.get_userinfo(event.sender, this.props.json.access_token);
         }
 
         if (event.type == "m.room.message") {
-          return <Message key={event.event_id} info={this.state.userinfo[event.sender]} id={event.sender} content={event.content.body} timestamp={time_string} source={event.sender == this.props.user ? "out" : "in"} />
+          return (
+            <Message
+              key={event.event_id}
+              info={this.state.userinfo[event.sender]}
+              id={event.sender}
+              content={event.content.body}
+              timestamp={time_string}
+              source={event.sender == this.props.user ? "out" : "in"}
+            />
+          )
         }
       }
     );
