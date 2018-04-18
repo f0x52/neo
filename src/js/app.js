@@ -26,6 +26,8 @@ var App = create({
     return({
       loginJson: loginJson,
       json: {rooms:{join:{}}},
+      rooms: [],
+      messages: [],
       loading: 0,
       syncing: 0,
       room: 0
@@ -72,8 +74,24 @@ var App = create({
     fetch(url)
     .then((response) => response.json())
       .then((responseJson) => {
-        let json = this.state.json;
-        this.setState({json: json});
+        let rooms = responseJson.rooms.join;
+        let messages = this.state.messages;
+        for(let i = 0; i < rooms.length; i++) {
+          let events = rooms[i].timeline.events;
+          if (messages[this.state.room] != undefined) {
+            messages[this.state.room].concat(events);
+          } else {
+            messages[this.state.room] = events;
+          }
+          messages[this.state.room].sort(function(a, b) {a.origin_server_ts-b.origin_server_ts});
+        }
+
+        let roomsState = this.state.rooms.concat(Object.keys(responseJson.rooms.join));
+        let s = new Set(roomsState); // Remove duplicates
+        let it = s.values();
+        roomsState = Array.from(it);
+
+        this.setState({messages: messages, json: responseJson, rooms: roomsState});
         this.setLoading(0);
         this.setState({syncing: 0});
     });
@@ -95,10 +113,10 @@ var App = create({
     return (
       <div className="main">
         {loading}
-        <List room={this.state.room} json={this.state.json} token={this.state.loginJson.access_token} setRoom={this.setRoom}/>
+        <List room={this.state.room} rooms={this.state.rooms} json={this.state.json} token={this.state.loginJson.access_token} setRoom={this.setRoom}/>
         <div className="view">
         <div className="messages split" id="message_window">
-          <Messages json={this.state.json.rooms.join} room={this.state.room} user={this.state.loginJson.user_id} />
+          <Messages messages={this.state.messages[this.state.room]} room={this.state.room} user={this.state.loginJson.user_id} />
         </div>
           <div className="input">
             <label htmlFor="">
@@ -256,8 +274,8 @@ var Login = create({
 
 var List = create({
   render: function() {
-    let rooms = this.props.json.rooms.join;
-    let list = Object.keys(rooms).map((room) => 
+    let rooms = this.props.rooms;
+    let list = rooms.map((room) => 
       <RoomEntry active={this.props.room == room} key={room} id={room} token={this.props.token} setRoom={this.props.setRoom} />
     );
     return(
@@ -365,13 +383,12 @@ var Messages = create({
   },
 
   render: function() {
-    let rooms = this.props.json;
-    if (this.props.room == 0) {
+    if (this.props.room == 0 || this.props.messages == undefined) {
       return null;
     }
 
-    let messages = Object.keys(rooms[this.props.room].timeline.events).map((event_num) => {
-        let event = rooms[this.props.room].timeline.events[event_num];
+    let messages = Object.keys(this.props.messages).map((event_num) => {
+        let event = this.props.messages[event_num];
         let time = new Date(event.origin_server_ts)
         let time_string = time.getHours().toString().padStart(2, "0") + ":" + time.getMinutes().toString().padStart(2, "0");
 
