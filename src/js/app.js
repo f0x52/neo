@@ -76,20 +76,28 @@ var App = create({
       .then((responseJson) => {
         let rooms = responseJson.rooms.join;
         let messages = this.state.messages;
-        for(let i = 0; i < rooms.length; i++) {
-          let events = rooms[i].timeline.events;
-          if (messages[this.state.room] != undefined) {
-            messages[this.state.room].concat(events);
-          } else {
-            messages[this.state.room] = events;
+        for(let roomid in rooms) {
+          let events = rooms[roomid].timeline.events;
+          if (roomid == "!cKemOooDHXgeUhGwnr:matrix.org") {
+            console.log(events);
           }
-          messages[this.state.room].sort(function(a, b) {a.origin_server_ts-b.origin_server_ts});
+          if (messages[roomid] != undefined) {
+            messages[roomid].concat(events);
+            for (let event in events) {
+              messages[roomid].push(events[event]);
+            }
+          } else {
+            console.log("adding room " + roomid + " with no history");
+            messages[roomid] = events;
+          }
+          //messages[roomid].sort(function(a, b) {a.origin_server_ts-b.origin_server_ts});
         }
 
         let roomsState = this.state.rooms.concat(Object.keys(responseJson.rooms.join));
         let s = new Set(roomsState); // Remove duplicates
         let it = s.values();
         roomsState = Array.from(it);
+
 
         this.setState({messages: messages, json: responseJson, rooms: roomsState});
         this.setLoading(0);
@@ -116,7 +124,7 @@ var App = create({
         <List room={this.state.room} rooms={this.state.rooms} json={this.state.json} token={this.state.loginJson.access_token} setRoom={this.setRoom}/>
         <div className="view">
         <div className="messages split" id="message_window">
-          <Messages messages={this.state.messages[this.state.room]} room={this.state.room} user={this.state.loginJson.user_id} />
+          <Messages messages={this.state.messages[this.state.room]} json={this.state.json} room={this.state.room} user={this.state.loginJson.user_id} />
         </div>
           <div className="input">
             <label htmlFor="">
