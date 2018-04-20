@@ -95,13 +95,14 @@ var App = create({
           }
           messages[roomid].sort(
             function(a, b) {
-              a.origin_server_ts-b.origin_server_ts
+             return a.origin_server_ts-b.origin_server_ts
             }
           );
           roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
           for (let i=messages[roomid].length - 1; i>0; i--) {
             if(messages[roomid][i].content.body != undefined) {
               roomsState[roomid].lastmessage = messages[roomid][i].content.body;
+              roomsState[roomid].origin_server_ts = messages[roomid][i].origin_server_ts;
               break;
             }
           }
@@ -320,13 +321,12 @@ var Login = create({
 var List = create({
   render: function() {
     let rooms = this.props.rooms;
-    console.log(rooms);
-    rooms.sort(
+    let sortedRooms = Object.keys(rooms).sort(
       function(a, b) {
-        a[a.length-1].origin_server_ts - b[b.length-1].origin_server_ts
+        return rooms[b].origin_server_ts - rooms[a].origin_server_ts;
       }
     );
-    let list = Object.keys(rooms).map((roomid) => 
+    let list = sortedRooms.map((roomid) => 
       <RoomEntry
         lastEvent={rooms[roomid]}
         active={this.props.room == roomid}
@@ -385,6 +385,17 @@ var RoomEntry = create({
   },
 
   render: function() {
+    let time = new Date(this.props.lastEvent.origin_server_ts);
+    let now = new Date();
+    let time_string;
+    if (time.toDateString() == now.toDateString()) {
+      time_string = time.getHours().toString().padStart(2, "0") +
+        ":" + time.getMinutes().toString().padStart(2, "0");
+    } else {
+      time_string = time.getMonth().toString().padStart(2, "0") +
+        "." + time.getDay().toString().padStart(2, "0") +
+        "." + time.getFullYear();
+    }
     return (
       <div
         id="room_item"
@@ -400,7 +411,7 @@ var RoomEntry = create({
           {this.state.name}
         </span><br/>
         <span className="timestamp">
-          {this.props.lastEvent.origin_server_ts}
+          {time_string}
         </span>
         <span className="last_msg">
           {this.props.lastEvent.lastmessage}
