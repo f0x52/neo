@@ -99,6 +99,12 @@ var App = create({
             }
           );
           roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
+          for (let i=messages[roomid].length - 1; i>0; i--) {
+            if(messages[roomid][i].content.body != undefined) {
+              roomsState[roomid].lastmessage = messages[roomid][i].content.body;
+              break;
+            }
+          }
         }
         this.setState({
           messages: messages,
@@ -397,7 +403,7 @@ var RoomEntry = create({
           {this.props.lastEvent.origin_server_ts}
         </span>
         <span className="last_msg">
-          {this.state.last_msg}
+          {this.props.lastEvent.lastmessage}
         </span>
       </div>
     );
