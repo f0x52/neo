@@ -43,10 +43,10 @@ html, body {
     overflow-y: auto;
 
     div {
-      height: 70px;
+      height: 80px;
       cursor: pointer;
       display: block;
-      padding: 10px;
+      padding: 5px;
       position: relative;
 
       img {
@@ -57,10 +57,10 @@ html, body {
       }
 
       #name {
-        font-size: 140%;
+        font-size: 120%;
         font-weight: bold;
         padding: 10px;
-        padding-left: 80px;
+        padding-left: 85px;
         white-space: nowrap;
       }
 
@@ -68,7 +68,7 @@ html, body {
         white-space: nowrap;
         padding: 10px;
         padding-top: 0;
-        padding-left: 80px;
+        padding-left: 85px;
         position: absolute;
         width: 80%;
         overflow: hidden;

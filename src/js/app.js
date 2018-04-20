@@ -384,23 +384,21 @@ var RoomEntry = create({
         id="room_item"
         className={this.props.active ? "active" : ""}
         onClick={() => this.props.setRoom(this.props.id)}>
-        <div id={this.props.id}>
-          <img
-            height="70px"
-            width="70px"
-            src={this.state.img}
-            onError={(e)=>{e.target.src = blank}}
-          />
-          <span id="name">
-            {this.state.name}
-          </span><br/>
-          <span className="timestamp">
-            {this.props.lastEvent.origin_server_ts}
-          </span>
-          <span className="last_msg">
-            {this.state.last_msg}
-          </span>
-        </div>
+        <img
+          height="70px"
+          width="70px"
+          src={this.state.img}
+          onError={(e)=>{e.target.src = blank}}
+        />
+        <span id="name">
+          {this.state.name}
+        </span><br/>
+        <span className="timestamp">
+          {this.props.lastEvent.origin_server_ts}
+        </span>
+        <span className="last_msg">
+          {this.state.last_msg}
+        </span>
       </div>
     );
   }
