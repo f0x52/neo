@@ -141,7 +141,7 @@ var App = create({
           setRoom={this.setRoom}
         />
         <div className="view">
-        <div className="messages split" id="message_window">
+        <div className="messages" id="message_window">
           <Messages
             messages={this.state.messages[this.state.room]}
             json={this.state.json}
@@ -514,11 +514,20 @@ var Message = create({
       ":" + time.getMinutes().toString().padStart(2, "0");
 
     let media = "";
+    let media_width = "";
     if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.video") {
+      classArray += " media";
+      media_width = this.props.event.content.info.thumbnail_info.w;
       if (this.props.event.content.msgtype == "m.image") {
-        media = <img
-            src={m_thumbnail(this.props.event.content.url, 720, 1280)}
-          />;
+        media = (
+          <div>
+            <a href={m_download(this.props.event.content.url)}>
+              <img
+                src={m_download(this.props.event.content.info.thumbnail_url)}
+              />
+            </a>
+          </div>
+        );
       } else {
         media = <video
             src={m_download(this.props.event.content.url)}
@@ -530,14 +539,16 @@ var Message = create({
     }
     return (
       <div className="line">
-        <div className={classArray} id={this.props.id}>
-          <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
+        <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
+        <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
-            <b>{this.props.info.name}</b><br/>
-            <p>{this.props.event.content.body}</p>
+            <b>{this.props.info.name}</b>
             {media}
+            <div className="flex">
+              <p>{this.props.event.content.body}</p>
+              <span className="timestamp">{time_string}</span>
+            </div>
           </div>
-          <span className="timestamp">{time_string}</span>
         </div>
       </div>
     );

@@ -91,6 +91,18 @@ html, body {
     min-height: 100vh;
     flex-direction: column;
 
+    #avatar {
+      height: 60px;
+      width: 60px;
+      vertical-align: top;
+      margin: 5px;
+      object-fit: cover;
+    }
+
+    .line {
+      margin: 8px 0px;
+    }
+
     .messages {
       flex: 1;
       overflow-x: hidden;
@@ -98,42 +110,55 @@ html, body {
 
       .message {
         clear: both;
-        margin: 5px;
-        padding: 8px;
-        position: relative;
+        margin: 0px 5px;
         display: inline-flex;
         min-width: 110px;
         max-width: 60%;
         border-radius: 4px;
 
-        #avatar {
-          height: 60px;
-          width: 60px;
-          vertical-align: top;
-          margin: 5px;
-          object-fit: cover;
-        }
-
         div {
-          margin: 5px;
           display: inline-block;
-          margin-bottom: 20px;
+          width: 100%;
 
-          p {
-            margin: 0;
+          b {
+            margin: 10px;
             display: block;
           }
 
-          img, video {
-            margin-top: 10px;
+          a img {
+            max-width: 100%;
+          }
+
+          .flex {
+            display: flex;
+            margin: 0 4px;
+
+            p, .timestamp {
+              margin: 5px;
+            }
+
+            p {
+              flex: 1;
+            }
+
+            .timestamp {
+              align-self: flex-end;
+              display: block;
+              text-align: right;
+              padding-right: 4px;
+            }
           }
         }
 
-        .timestamp {
-          position: absolute;
-          right: 7px;
-          bottom: 7px;
+        .media {
+          padding-left: 0;
+          padding-right: 0;
+
         }
+      }
+
+      .media {
+      
       }
     }
 

@@ -64,6 +64,7 @@ a:hover {
     .messages {
       .message {
         background-color: lighten($bg, 4);
+
         .timestamp {
           color: darken($fg, 45);
         }
