@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import '../scss/layout.scss';
+
+var riot = require('./riot-utils.js');
 var create = require('create-react-class');
 var neo = require('../assets/neo_full.png');
 var blank = require('../assets/blank.jpg');
@@ -151,10 +153,14 @@ var App = create({
           />
         </div>
           <div className="input">
-            <label htmlFor="">
+            <label htmlFor="attachment">
               <img src={icon.file.dark} id="file" className="dark"/>
               <img src={icon.file.light} id="file" className="light"/>
             </label>
+            <Attachment
+              room={this.state.room}
+              token={this.state.loginJson.access_token}
+            />
             <Send
               room={this.state.room}
               token={this.state.loginJson.access_token}
@@ -223,8 +229,8 @@ var Send = create({
         this.props.token
 
         var body = {
-            "msgtype": "m.text",
-            "body": msg,
+          "msgtype": "m.text",
+          "body": msg,
         }
 
         fetch(url, {
@@ -251,6 +257,110 @@ var Send = create({
         spellCheck="false">
       </textarea>
     );
+  }
+})
+
+var Attachment = create ({
+  componentDidMount: function() {
+    document.getElementById("attachment").addEventListener('change', this.upload, false);
+  },
+
+  upload: function() {
+    let file = document.getElementById("attachment").files[0];
+    this.setState({file: file});
+    let upload_url = homeserver +
+      "/_matrix/media/r0/upload" +
+      "?access_token=" + this.props.token
+    fetch(upload_url, {
+      method: 'POST',
+      body: this.state.file,
+    }).then(
+      response => response.json()
+    ).then(response => {
+      console.log('Success:', response)
+      this.setState({"url": response.content_uri});
+      
+      var unixtime = Date.now()
+
+      var msg_url = homeserver +
+      "/_matrix/client/r0/rooms/" +
+      this.props.room +
+      "/send/m.room.message/" +
+      unixtime +
+      "?access_token=" +
+      this.props.token;
+
+      if (this.state.file.type.startsWith("image/")) { //image, so create a thumbnail as well
+        let thumbnailType = "image/png";
+        let imageInfo;
+
+        if (this.state.file.type == "image/jpeg") {
+            thumbnailType = "image/jpeg";
+        }
+
+        riot.loadImageElement(this.state.file).bind(this).then(function(img) {
+          return riot.createThumbnail(img,
+            img.width,
+            img.height,
+            thumbnailType);
+        }).then(function(result) {
+          imageInfo = result.info;
+          console.log(imageInfo);
+          this.setState({"info": imageInfo});
+          fetch(upload_url, {
+            method: 'POST',
+            body: result.thumbnail,
+          }).then(
+            response => response.json()
+          ).then(response => {
+            let info = this.state.info;
+            info.thumbnail_url = response.content_uri;
+            info.mimetype = this.state.file.type;
+
+            var body = { 
+              "msgtype": "m.image",
+              "url": this.state.url,
+              "body": this.state.file.name,
+              "info": info
+            }
+
+            fetch(msg_url, {
+              method: 'PUT',
+              body: JSON.stringify(body),
+              headers: new Headers({
+                'Content-Type': 'application/json'
+              })
+            }).then(res => res.json())
+            .catch(error => console.error('Error:', error))
+            .then(response => console.log('Success:', response));
+        })});
+      } else {
+        var body = { 
+          "msgtype": "m.file",
+          "url": response.content_uri,
+          "body": this.state.file.name,
+          "info": {
+            "mimetype": this.state.file.type
+          }
+        }
+
+        fetch(msg_url, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => res.json())
+        .catch(error => console.error('Error:', error))
+        .then(response => console.log('Success:', response));
+      }
+    });
+  },
+
+  render: function() {
+    return (
+      <input id="attachment" type="file"/>
+    )
   }
 })
 
@@ -517,8 +627,9 @@ var Message = create({
     let media_width = "";
     if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.video") {
       classArray += " media";
-      if (this.props.event.content.info.thumbnail_url == undefined) {
-        media = <a href={m_download(this.props.event.content.url)}>no thumbnail available</a>
+      if (this.props.event.content.info == undefined ||
+          this.props.event.content.info.thumbnail_info == undefined) {
+        media = <a href={m_download(this.props.event.content.url)}><span>no thumbnail available</span></a>
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
         if (this.props.event.content.msgtype == "m.image") {

@@ -190,6 +190,10 @@ html, body {
         left: 6px;
       }
 
+      #attachment {
+        display: none;
+      }
+
       textarea {
         width: calc(100% - 72px);
         margin-left: 36px;
