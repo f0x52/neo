@@ -540,7 +540,14 @@ var Message = create({
             ></video>;
         }
       }
+    } else if (this.props.event.content.msgtype == "m.file") {
+      media = <a href={m_download(this.props.event.content.url)}><span>file download</span></a>
+    } else {
+      if (!this.props.event.content.msgtype == "m.text") {
+        console.log(this.props.event);
+      }
     }
+
     return (
       <div className="line">
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
