@@ -517,24 +517,28 @@ var Message = create({
     let media_width = "";
     if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.video") {
       classArray += " media";
-      media_width = this.props.event.content.info.thumbnail_info.w;
-      if (this.props.event.content.msgtype == "m.image") {
-        media = (
-          <div>
-            <a href={m_download(this.props.event.content.url)}>
-              <img
-                src={m_download(this.props.event.content.info.thumbnail_url)}
-              />
-            </a>
-          </div>
-        );
+      if (this.props.event.content.info.thumbnail_url == undefined) {
+        media = <a href={m_download(this.props.event.content.url)}>no thumbnail available</a>
       } else {
-        media = <video
-            src={m_download(this.props.event.content.url)}
-            poster={m_download(this.props.event.content.info.thumbnail_url)}
-            controls
-            preload="none"
-          ></video>;
+        media_width = this.props.event.content.info.thumbnail_info.w;
+        if (this.props.event.content.msgtype == "m.image") {
+          media = (
+            <div>
+              <a href={m_download(this.props.event.content.url)}>
+                <img
+                  src={m_download(this.props.event.content.info.thumbnail_url)}
+                />
+              </a>
+            </div>
+          );
+        } else {
+          media = <video
+              src={m_download(this.props.event.content.url)}
+              poster={m_download(this.props.event.content.info.thumbnail_url)}
+              controls
+              preload="none"
+            ></video>;
+        }
       }
     }
     return (
