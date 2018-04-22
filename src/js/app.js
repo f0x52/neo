@@ -145,6 +145,7 @@ var App = create({
           <Messages
             messages={this.state.messages[this.state.room]}
             json={this.state.json}
+            token={this.state.loginJson.access_token}
             room={this.state.room}
             user={this.state.loginJson.user_id}
           />
@@ -428,7 +429,8 @@ var Messages = create({
     })
   },
 
-  get_userinfo: function(id, token) {
+  get_userinfo: function(id) {
+    let token = this.props.token;
     let userinfo = this.state.userinfo;
     userinfo[id] = {};
     userinfo[id].name = id;
@@ -477,12 +479,8 @@ var Messages = create({
 
     let messages = Object.keys(this.props.messages).map((event_num) => {
         let event = this.props.messages[event_num];
-        let time = new Date(event.origin_server_ts)
-        let time_string = time.getHours().toString().padStart(2, "0") +
-          ":" + time.getMinutes().toString().padStart(2, "0");
-
         if (this.state.userinfo[event.sender] == undefined) {
-          this.get_userinfo(event.sender, this.props.json.access_token);
+          this.get_userinfo(event.sender);
         }
 
         if (event.type == "m.room.message") {
@@ -491,8 +489,7 @@ var Messages = create({
               key={event.event_id}
               info={this.state.userinfo[event.sender]}
               id={event.sender}
-              content={event.content.body}
-              timestamp={time_string}
+              event={event}
               source={event.sender == this.props.user ? "out" : "in"}
             />
           )
@@ -512,20 +509,54 @@ var Messages = create({
 var Message = create({
   render: function() {
     let classArray = ["message", this.props.id, this.props.source].join(" ");
+    let time = new Date(this.props.event.origin_server_ts)
+    let time_string = time.getHours().toString().padStart(2, "0") +
+      ":" + time.getMinutes().toString().padStart(2, "0");
+
+    let media = "";
+    if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.video") {
+      if (this.props.event.content.msgtype == "m.image") {
+        media = <img
+            src={m_thumbnail(this.props.event.content.url, 720, 1280)}
+          />;
+      } else {
+        media = <video
+            src={m_download(this.props.event.content.url)}
+            poster={m_download(this.props.event.content.info.thumbnail_url)}
+            controls
+            preload="none"
+          ></video>;
+      }
+    }
     return (
       <div className="line">
         <div className={classArray} id={this.props.id}>
-          <img src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
+          <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
           <div>
             <b>{this.props.info.name}</b><br/>
-            <p>{this.props.content}</p>
+            <p>{this.props.event.content.body}</p>
+            {media}
           </div>
-          <span className="timestamp">{this.props.timestamp}</span>
+          <span className="timestamp">{time_string}</span>
         </div>
       </div>
     );
   }
 })
+
+function m_thumbnail(mxc, w, h) {
+  return homeserver +
+    "/_matrix/media/r0/thumbnail/" +
+    mxc.substring(6) +
+    "?width=" + w +
+    "&height=" + h;
+}
+
+function m_download(mxc) {
+  return homeserver +
+    "/_matrix/media/r0/download/" +
+    mxc.substring(6);
+}
 
 
 ReactDOM.render(

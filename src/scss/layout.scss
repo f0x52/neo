@@ -106,7 +106,7 @@ html, body {
         max-width: 60%;
         border-radius: 4px;
 
-        img {
+        #avatar {
           height: 60px;
           width: 60px;
           vertical-align: top;
@@ -118,11 +118,15 @@ html, body {
           margin: 5px;
           display: inline-block;
           margin-bottom: 20px;
-        }
 
-        p {
-          margin: 0;
-          display: block;
+          p {
+            margin: 0;
+            display: block;
+          }
+
+          img, video {
+            margin-top: 10px;
+          }
         }
 
         .timestamp {
@@ -140,7 +144,7 @@ html, body {
 
       .out {
         float: right;
-        img, b, br {
+        #avatar, b, br {
           display: none;
         }
       }
