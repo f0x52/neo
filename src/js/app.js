@@ -632,11 +632,15 @@ var Message = create({
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
         if (this.props.event.content.msgtype == "m.image") {
+          let media_url = this.props.event.content.info.thumbnail_url;
+          if (this.props.event.content.info.mimetype == "image/gif") {
+            media_url = this.props.event.content.url;
+          }
           media = (
             <div>
               <a href={m_download(this.props.event.content.url)}>
                 <img
-                  src={m_download(this.props.event.content.info.thumbnail_url)}
+                  src={m_download(media_url)}
                 />
               </a>
             </div>
