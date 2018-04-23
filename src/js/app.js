@@ -305,7 +305,6 @@ var Attachment = create ({
             thumbnailType);
         }).then(function(result) {
           imageInfo = result.info;
-          console.log(imageInfo);
           this.setState({"info": imageInfo});
           fetch(upload_url, {
             method: 'POST',
