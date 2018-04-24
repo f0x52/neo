@@ -2,14 +2,14 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import '../scss/layout.scss';
 
-var riot = require('./riot-utils.js');
-var create = require('create-react-class');
-var neo = require('../assets/neo_full.png');
-var blank = require('../assets/blank.jpg');
-var loadingGif = require('../assets/loading.gif');
-var homeserver = "https://matrix.org";
+let riot = require('./riot-utils.js');
+let create = require('create-react-class');
+let neo = require('../assets/neo_full.png');
+let blank = require('../assets/blank.jpg');
+let loadingGif = require('../assets/loading.gif');
+let homeserver = "https://matrix.org";
 
-var icon = {
+let icon = {
   file: {
     dark: require('../assets/dark/file.svg'),
     light: require('../assets/light/file.svg')
@@ -20,7 +20,8 @@ var icon = {
   }
 }
 
-var App = create({
+let App = create({
+  displayName: "App",
   getInitialState: function() {
     let loginJson = {};
     if(localStorage.getItem("loginJson")) {
@@ -134,7 +135,7 @@ var App = create({
     }
     return (
       <div className="main">
-        {loading}
+        <div>{loading}</div>
         <List
           room={this.state.room}
           rooms={this.state.rooms}
@@ -174,7 +175,7 @@ var App = create({
   }
 })
 
-var observe = function (element, event, handler) {
+let observe = function (element, event, handler) {
   element.addEventListener(event, handler, false)
 }
 
@@ -183,9 +184,10 @@ function extend(obj, src) {
     return obj;
 }
 
-var Send = create({
+let Send = create({
+  displayName: "Send",
   componentDidMount: function() {
-    var textarea = document.getElementById('text')
+    let textarea = document.getElementById('text')
     observe(textarea, 'change',  this.resize_textarea);
     observe(textarea, 'cut',     this.resize_textarea_delayed);
     observe(textarea, 'paste',   this.resize_textarea_delayed);
@@ -204,7 +206,7 @@ var Send = create({
   },
 
   resize_textarea: function() {
-    var textarea = document.getElementById('text')
+    let textarea = document.getElementById('text')
     textarea.style.height = 'auto'
     textarea.style.height = text.scrollHeight+'px'
   },
@@ -214,13 +216,13 @@ var Send = create({
   },
 
   send: function() {
-    var textarea = document.getElementById('text')
+    let textarea = document.getElementById('text')
     if(textarea.value != "") {
-        var msg = textarea.value.replace(/^\s+|\s+$/g, '')
+        let msg = textarea.value.replace(/^\s+|\s+$/g, '')
         textarea.value = ""
-        var unixtime = Date.now()
+        let unixtime = Date.now()
 
-        var url = homeserver +
+        let url = homeserver +
         "/_matrix/client/r0/rooms/" +
         this.props.room +
         "/send/m.room.message/" +
@@ -228,7 +230,7 @@ var Send = create({
         "?access_token=" +
         this.props.token
 
-        var body = {
+        let body = {
           "msgtype": "m.text",
           "body": msg,
         }
@@ -260,7 +262,8 @@ var Send = create({
   }
 })
 
-var Attachment = create ({
+let Attachment = create ({
+  displayName: "Attachment",
   componentDidMount: function() {
     document.getElementById("attachment").addEventListener('change', this.upload, false);
   },
@@ -280,9 +283,9 @@ var Attachment = create ({
       console.log('Success:', response)
       this.setState({"url": response.content_uri});
       
-      var unixtime = Date.now()
+      let unixtime = Date.now()
 
-      var msg_url = homeserver +
+      let msg_url = homeserver +
       "/_matrix/client/r0/rooms/" +
       this.props.room +
       "/send/m.room.message/" +
@@ -316,7 +319,7 @@ var Attachment = create ({
             info.thumbnail_url = response.content_uri;
             info.mimetype = this.state.file.type;
 
-            var body = { 
+            let body = { 
               "msgtype": "m.image",
               "url": this.state.url,
               "body": this.state.file.name,
@@ -334,7 +337,7 @@ var Attachment = create ({
             .then(response => console.log('Success:', response));
         })});
       } else {
-        var body = { 
+        let body = { 
           "msgtype": "m.file",
           "url": response.content_uri,
           "body": this.state.file.name,
@@ -363,7 +366,8 @@ var Attachment = create ({
   }
 })
 
-var Login = create({
+let Login = create({
+  displayName: "Login",
   getInitialState: function() {
     return ({
       user: "",
@@ -428,7 +432,8 @@ var Login = create({
   }
 })
 
-var List = create({
+let List = create({
+  displayName: "List",
   render: function() {
     let rooms = this.props.rooms;
     let sortedRooms = Object.keys(rooms).sort(
@@ -454,7 +459,8 @@ var List = create({
   },
 })
 
-var RoomEntry = create({
+let RoomEntry = create({
+  displayName: "RoomEntry",
   getInitialState: function() {
     return ({
       name: this.props.id,
@@ -531,7 +537,8 @@ var RoomEntry = create({
   }
 })
 
-var Messages = create({
+let Messages = create({
+  displayName: "Messages",
   getInitialState: function() {
     return({
       userinfo: []
@@ -585,25 +592,45 @@ var Messages = create({
     if (this.props.room == 0 || this.props.messages == undefined) {
       return null;
     }
-
     let messages = Object.keys(this.props.messages).map((event_num) => {
-        let event = this.props.messages[event_num];
+      let event = this.props.messages[event_num];
+      let next_event = parseInt(event_num)+1;
+
+      if (event.grouped != 1 && event.type == "m.room.message") {
         if (this.state.userinfo[event.sender] == undefined) {
           this.get_userinfo(event.sender);
         }
 
-        if (event.type == "m.room.message") {
-          return (
-            <Message
-              key={event.event_id}
-              info={this.state.userinfo[event.sender]}
-              id={event.sender}
-              event={event}
-              source={event.sender == this.props.user ? "out" : "in"}
-            />
-          )
+        while (this.props.messages[next_event] != undefined &&
+          this.props.messages[next_event].sender == event.sender &&
+          this.props.messages[next_event].type == "m.room.message" &&
+          (this.props.messages[next_event].content.msgtype == "m.text" ||
+            this.props.messages[next_event].content.msgtype == "m.notice" )&&
+          this.props.messages[next_event].grouped != 1) {
+          this.props.messages[next_event].grouped = 1;
+          event.content.body += "\n" + this.props.messages[next_event].content.body;
+          next_event++;
         }
+
+        return (
+          <Message
+            key={event.event_id}
+            info={this.state.userinfo[event.sender]}
+            id={event.sender}
+            event={event}
+            source={event.sender == this.props.user ? "out" : "in"}
+            group="no"
+          />
+        )
+      } else if (event.type == "m.room.member") {
+        return (
+          <div className="line member" key={event.event_id}>
+            {event.sender}
+            {event.membership == "leave" && " left" || " joined" }
+          </div>
+        )
       }
+    }
     );
     return (
       <div>
@@ -615,7 +642,8 @@ var Messages = create({
 
 })
 
-var Message = create({
+let Message = create({
+  displayName: "Message",
   render: function() {
     let classArray = ["message", this.props.id, this.props.source].join(" ");
     let time = new Date(this.props.event.origin_server_ts)
@@ -670,7 +698,11 @@ var Message = create({
             <b>{this.props.info.name}</b>
             {media}
             <div className="flex">
-              <p>{this.props.event.content.body}</p>
+              <p>{
+                this.props.event.content.body.split('\n').map((item, key) => {
+                  return <span key={key}>{item}<br/></span>
+                })
+              }</p>
               <span className="timestamp">{time_string}</span>
             </div>
           </div>

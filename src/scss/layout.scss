@@ -96,11 +96,12 @@ html, body {
       width: 60px;
       vertical-align: top;
       margin: 5px;
+      margin-top: 0;
       object-fit: cover;
     }
 
     .line {
-      margin: 8px 0px;
+      margin-top: 8px;
     }
 
     .messages {
@@ -113,7 +114,7 @@ html, body {
         margin: 0px 5px;
         display: inline-flex;
         min-width: 110px;
-        max-width: 60%;
+        max-width: calc(100% - 85px);
         border-radius: 4px;
 
         div {
@@ -129,10 +130,6 @@ html, body {
           a img {
             max-width: 100%;
             margin-top: 5px;
-          }
-
-          span {
-            margin: 10px;
           }
 
           .flex {
@@ -159,12 +156,7 @@ html, body {
         .media {
           padding-left: 0;
           padding-right: 0;
-
         }
-      }
-
-      .media {
-      
       }
     }
 
