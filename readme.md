@@ -1,4 +1,5 @@
 # Neo
+<a href="https://liberapay.com/f0x/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>
 
 ## About
 Neo is a react.js webclient for [Matrix](https://matrix.org). It's mainly
