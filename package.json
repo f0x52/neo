@@ -26,6 +26,7 @@
     "webpack-dev-server": "^3.1.1"
   },
   "dependencies": {
+    "arr-uniq": "^1.0.0",
     "bluebird": "^3.5.1",
     "blueimp-canvas-to-blob": "^3.14.0",
     "react": "^16.2.0",

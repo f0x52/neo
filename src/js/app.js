@@ -9,6 +9,7 @@ let create = require('create-react-class');
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
+let uniq = require('arr-uniq');
 let homeserver = "https://matrix.org";
 
 let icon = {
@@ -153,16 +154,9 @@ let App = create({
           messages[roomid] = responseJson.chunk;
         }
         messages[roomid].sort(sortEvents);
-        let eventIds = [];
-        let events = messages[roomid];
-        for (let id in events) {
-          if(eventIds[events[id].event_id] == undefined) {
-            eventIds[events[id].event_id] = 1;
-          } else {
-            events.splice(events.indexOf(events[id]), 1);
-          }
-        }
-        messages[roomid] = events;
+        messages[roomid] = uniq(messages[roomid], function equals(a, b) {
+          return a.event_id === b.event_id;
+        });
         rooms[roomid].prev_batch = responseJson.end;
         this.setState({
           messages: messages,
