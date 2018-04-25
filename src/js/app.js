@@ -742,6 +742,10 @@ let Message = create({
       }
     }
 
+    if (this.props.event.content.body == undefined) {
+      return null;
+    }
+
     return (
       <div className="line">
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
