@@ -82,15 +82,18 @@ let App = create({
       url = url + "&since=" + this.state.json.next_batch;
     }
     fetch(url)
-    .then((response) => response.json())
+      .then((response) => response.json())
+      .catch(error => console.error('Error:', error))
       .then((responseJson) => {
+        if (responseJson == undefined) {
+          return;
+        }
         let rooms = responseJson.rooms.join;
         let roomsState = this.state.rooms;
         let messages = this.state.messages;
         for(let roomid in rooms) {
           let events = rooms[roomid].timeline.events;
           if (messages[roomid] != undefined) {
-            messages[roomid].concat(events);
             for (let event in events) {
               messages[roomid].push(events[event]);
             }
@@ -730,7 +733,6 @@ let MaybeAnImage = create({
   },
 
   render: function() {
-    console.log(this.state.img);
     if (this.state.img == "yes") {
       return(
         <span>
