@@ -609,7 +609,9 @@ let Messages = create({
           this.props.messages[next_event].sender == event.sender &&
           this.props.messages[next_event].type == "m.room.message" &&
           (this.props.messages[next_event].content.msgtype == "m.text" ||
-            this.props.messages[next_event].content.msgtype == "m.notice" )&&
+            this.props.messages[next_event].content.msgtype == "m.notice" ) &&
+          (this.props.messages[next_event].origin_server_ts -
+            event.origin_server_ts < 300000) && //max 5 min older
           this.props.messages[next_event].grouped != 1) {
           this.props.messages[next_event].grouped = 1;
           event.content.body += "\n" + this.props.messages[next_event].content.body;
