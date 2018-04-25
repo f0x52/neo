@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Linkify from 'react-linkify';
+
 import '../scss/layout.scss';
 
 let riot = require('./riot-utils.js');
@@ -40,7 +41,8 @@ let App = create({
       messages: [],
       loading: 0,
       syncing: 0,
-      room: 0
+      room: 0,
+      backlog: 0
     });
   },
 
@@ -100,13 +102,11 @@ let App = create({
           } else {
             messages[roomid] = events;
           }
-          messages[roomid].sort(
-            function(a, b) {
-             return a.origin_server_ts-b.origin_server_ts
-            }
-          );
+          messages[roomid].sort(sortEvents);
           roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
+          roomsState[roomid].prev_batch = rooms[roomid].timeline.prev_batch;
           for (let i=messages[roomid].length - 1; i>0; i--) {
+            //Try get the last message with text content
             if(messages[roomid][i].content.body != undefined) {
               roomsState[roomid].lastmessage = messages[roomid][i].content.body;
               roomsState[roomid].origin_server_ts = messages[roomid][i].origin_server_ts;
@@ -122,6 +122,54 @@ let App = create({
         this.setLoading(0);
         this.setState({syncing: 0});
     });
+  },
+
+  getBacklog: function(roomid) {
+    if (this.state.backlog == 1) {
+      return;
+    }
+    this.setState({backlog: 1});
+    let messages = this.state.messages;
+    let rooms = this.state.rooms;
+    let from = rooms[roomid].prev_batch;
+
+    let url = homeserver + 
+      "/_matrix/client/r0/rooms/" + roomid +
+      "/messages?from=" + from +
+      "&limit=50" +
+      "&dir=b" +
+      "&access_token=" + 
+      this.state.loginJson.access_token;
+
+    fetch(url)
+      .then((response) => response.json())
+      .catch(error => console.error('Error:', error))
+      .then((responseJson) => {
+        if (messages[roomid] != undefined) {
+          for (let event in responseJson.chunk) {
+            messages[roomid].push(responseJson.chunk[event]);
+          }
+        } else {
+          messages[roomid] = responseJson.chunk;
+        }
+        messages[roomid].sort(sortEvents);
+        let eventIds = [];
+        let events = messages[roomid];
+        for (let id in events) {
+          if(eventIds[events[id].event_id] == undefined) {
+            eventIds[events[id].event_id] = 1;
+          } else {
+            events.splice(events.indexOf(events[id]), 1);
+          }
+        }
+        messages[roomid] = events;
+        rooms[roomid].prev_batch = responseJson.end;
+        this.setState({
+          messages: messages,
+          rooms: rooms,
+          backlog: 0
+        });
+      })
   },
 
   render: function() {
@@ -150,6 +198,7 @@ let App = create({
         <div className="view">
         <div className="messages" id="message_window">
           <Messages
+            backlog={this.getBacklog}
             messages={this.state.messages[this.state.room]}
             json={this.state.json}
             token={this.state.loginJson.access_token}
@@ -181,11 +230,6 @@ let App = create({
 
 let observe = function (element, event, handler) {
   element.addEventListener(event, handler, false)
-}
-
-function extend(obj, src) {
-    Object.keys(src).forEach(function(key) { obj[key] = src[key]; });
-    return obj;
 }
 
 let Send = create({
@@ -640,6 +684,9 @@ let Messages = create({
     );
     return (
       <div>
+        <span onClick={() => this.props.backlog(this.props.room)}>
+          Load more messages
+        </span><br/>
         {this.props.room}
         {messages}
       </div>
@@ -764,6 +811,9 @@ function m_download(mxc) {
     mxc.substring(6);
 }
 
+function sortEvents(a, b) {
+  return a.origin_server_ts-b.origin_server_ts
+}
 
 ReactDOM.render(
   <App />,
