@@ -127,6 +127,11 @@ html, body {
             display: block;
           }
 
+          .file {
+            margin: 10px;
+          }
+
+
           a img {
             max-width: 100%;
             margin-top: 5px;
@@ -142,6 +147,10 @@ html, body {
 
             p {
               flex: 1;
+            }
+
+            .link {
+              max-width: 100%;
             }
 
             .timestamp {

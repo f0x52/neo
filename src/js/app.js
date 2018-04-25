@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Linkify from 'react-linkify';
 import '../scss/layout.scss';
 
 let riot = require('./riot-utils.js');
@@ -683,7 +684,12 @@ let Message = create({
         }
       }
     } else if (this.props.event.content.msgtype == "m.file") {
-      media = <a href={m_download(this.props.event.content.url)}><span>file download</span></a>
+      media = <a
+        className="file"
+        href={m_download(this.props.event.content.url)}
+      >
+        <span>file download</span>
+      </a>
     } else {
       if (!this.props.event.content.msgtype == "m.text") {
         console.log(this.props.event);
@@ -698,17 +704,45 @@ let Message = create({
             <b>{this.props.info.name}</b>
             {media}
             <div className="flex">
-              <p>{
+              <p><Linkify component={MaybeAnImage}>{
                 this.props.event.content.body.split('\n').map((item, key) => {
                   return <span key={key}>{item}<br/></span>
                 })
-              }</p>
+              }</Linkify></p>
               <span className="timestamp">{time_string}</span>
             </div>
           </div>
         </div>
       </div>
     );
+  }
+})
+
+let MaybeAnImage = create({
+  getInitialState: function() {
+    return {img: "no"}
+  },
+
+  componentDidMount: function() {
+    let img = new Image();
+    img.onload = () => this.setState({img: "yes"});
+    img.src = this.props.href;
+  },
+
+  render: function() {
+    console.log(this.state.img);
+    if (this.state.img == "yes") {
+      return(
+        <span>
+          <a href={this.props.href} target="_blank">{this.props.href}</a><br/>
+          <img className="link" src={this.props.href} />
+        </span>
+      )
+    }
+
+    return (
+      <a href={this.props.href} target="_blank">{this.props.href}</a>
+    )
   }
 })
 
