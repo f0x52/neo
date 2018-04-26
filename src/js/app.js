@@ -679,10 +679,25 @@ let Messages = create({
           />
         )
       } else if (event.type == "m.room.member") {
+        let action = "";
+        switch (event.membership) {
+          case "leave" : 
+            action = " left";
+            break;
+          case "join" : 
+            action = " joined";
+            break;
+          case "invite" : 
+            action = " invited " + event.state_key;
+            break;
+          default:
+            action = " did something";
+            console.log(event);
+            break;
+        }
         return (
           <div className="line member" key={event.event_id}>
-            {event.sender}
-            {event.membership == "leave" && " left" || " joined" }
+            {event.sender} {action}
           </div>
         )
       }
