@@ -27,19 +27,30 @@ let App = create({
   displayName: "App",
   getInitialState: function() {
     let loginJson = {};
+    let rooms = {};
+    let messages = {};
     if(localStorage.getItem("loginJson")) {
       loginJson = JSON.parse(localStorage.getItem("loginJson"));
+      console.log("loaded loginJson from storage");
+      if(localStorage.getItem("version") == "0.01") {
+        console.log("loaded rooms/messages from storage");
+        rooms = JSON.parse(localStorage.getItem("rooms"));
+        messages = JSON.parse(localStorage.getItem("messages"));
+        console.log(rooms);
+        console.log(messages);
+      } else {
+        localStorage.setItem("version", "0.01");
+      }
       this.timer = setInterval(
         () => this.sync(),
         2000
       )
-      console.log("loaded loginJson from storage");
     }
     return({
       loginJson: loginJson,
       json: {rooms:{join:{}}},
-      rooms: [],
-      messages: [],
+      rooms: rooms,
+      messages: messages,
       loading: 0,
       syncing: 0,
       room: 0,
@@ -116,6 +127,8 @@ let App = create({
             }
           }
         }
+        localStorage.setItem("messages", JSON.stringify(messages));
+        localStorage.setItem("rooms", JSON.stringify(roomsState));
         this.setState({
           messages: messages,
           json: responseJson,
@@ -157,6 +170,8 @@ let App = create({
         messages[roomid].sort(sortEvents);
         messages[roomid] = uniq(messages[roomid], uniqEvents);
         rooms[roomid].prev_batch = responseJson.end;
+        localStorage.setItem("messages", JSON.stringify(messages));
+        localStorage.setItem("rooms", JSON.stringify(roomsState));
         this.setState({
           messages: messages,
           rooms: rooms,
@@ -184,7 +199,6 @@ let App = create({
         <List
           room={this.state.room}
           rooms={this.state.rooms}
-          json={this.state.json}
           token={this.state.loginJson.access_token}
           setRoom={this.setRoom}
         />
@@ -193,7 +207,6 @@ let App = create({
             <Messages
               backlog={this.getBacklog}
               messages={this.state.messages[this.state.room]}
-              json={this.state.json}
               token={this.state.loginJson.access_token}
               room={this.state.room}
               user={this.state.loginJson.user_id}
@@ -680,6 +693,9 @@ let Messages = create({
         )
       } else if (event.type == "m.room.member") {
         let action = "";
+        if (event.content.membership) {
+          event.membership = event.content.membership;
+        }
         switch (event.membership) {
           case "leave" : 
             action = " left";
