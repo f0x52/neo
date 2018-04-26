@@ -10,7 +10,11 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 let uniq = require('arr-uniq');
+
 let homeserver = "https://matrix.org";
+if (localStorage.getItem("hs")) {
+  homeserver = localStorage.getItem("hs");
+}
 
 let icon = {
   file: {
@@ -73,6 +77,10 @@ let App = create({
 
   setRoom: function(room) {
     this.setState({room: room});
+  },
+
+  setHs: function(hs) {
+    this.setState({homeserver: hs});
   },
 
   componentWillUnmount: function() {
@@ -190,7 +198,11 @@ let App = create({
       return (
         <div className="login">
           {loading}
-          <Login setJson={this.setJson} setLoading={this.setLoading}/>
+          <Login
+            setJson={this.setJson}
+            setHs={this.setHs}
+            setLoading={this.setLoading}
+          />
         </div>
       );
     }
@@ -426,6 +438,7 @@ let Login = create({
     return ({
       user: "",
       pass: "",
+      homeserver: "https://matrix.org",
       error: undefined,
       json: {},
     });
@@ -444,6 +457,8 @@ let Login = create({
               value={this.state.user} onChange={this.handleUser}/><br/>
             <input id="pass" type="password" placeholder="password"
               value={this.state.pass} onChange={this.handlePass}/><br/>
+            <input id="hs" type="text" placeholder="homeserver"
+              value={this.state.homeserver} onChange={this.handleHs}/><br/>
             <button type="submit" onClick={this.login}>Log in</button>
           </form>
           {error}
@@ -459,16 +474,23 @@ let Login = create({
     this.setState({pass: event.target.value});
   },
 
+  handleHs: function(event) {
+    this.setState({homeserver: event.target.value});
+  },
+
   login: function(event) {
     event.preventDefault();
     this.props.setLoading(1);
+    this.props.setHs(this.state.homeserver);
+    localStorage.setItem("hs", this.state.homeserver);
+    homeserver = this.state.homeserver;
     let data = {
       "user": this.state.user,
       "password": this.state.pass,
       "type": "m.login.password",
       "initial_device_display_name": "Neo Webclient",
     };
-    fetch(homeserver + "/_matrix/client/r0/login", {
+    fetch(this.state.homeserver + "/_matrix/client/r0/login", {
       body: JSON.stringify(data),
       headers: {
         'content-type': 'application/json'
