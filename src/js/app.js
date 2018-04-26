@@ -592,7 +592,11 @@ let RoomEntry = create({
       <div
         id="room_item"
         className={this.props.active ? "active" : ""}
-        onClick={() => this.props.setRoom(this.props.id)}>
+        onClick={() => {
+          this.props.setRoom(this.props.id)
+          let win = document.getElementById("message_window");
+          win.scrollTop = win.scrollHeight; //force scroll to bottom
+        }}>
         <img
           height="70px"
           width="70px"
@@ -619,20 +623,6 @@ let Messages = create({
     return({
       userinfo: []
     })
-  },
-
-  componentWillUpdate: function() {
-    var node = ReactDOM.findDOMNode(this);
-    if (node != null) {
-      this.shouldScrollBottom = node.scrollTop + node.offsetHeight === node.scrollHeight;
-    }
-  },
-   
-  componentDidUpdate: function() {
-    if (this.shouldScrollBottom) {
-      var node = ReactDOM.findDOMNode(this);
-      node.scrollTop = node.scrollHeight
-    }
   },
 
   get_userinfo: function(id) {
