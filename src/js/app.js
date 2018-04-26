@@ -36,8 +36,6 @@ let App = create({
         console.log("loaded rooms/messages from storage");
         rooms = JSON.parse(localStorage.getItem("rooms"));
         messages = JSON.parse(localStorage.getItem("messages"));
-        console.log(rooms);
-        console.log(messages);
       } else {
         localStorage.setItem("version", "0.01");
       }
@@ -158,7 +156,10 @@ let App = create({
 
     fetch(url)
       .then((response) => response.json())
-      .catch(error => console.error('Error:', error))
+      .catch(error => {
+        console.error('Error:', error);
+        this.setState({backlog: 0});
+      })
       .then((responseJson) => {
         if (messages[roomid] != undefined) {
           for (let event in responseJson.chunk) {
@@ -171,7 +172,7 @@ let App = create({
         messages[roomid] = uniq(messages[roomid], uniqEvents);
         rooms[roomid].prev_batch = responseJson.end;
         localStorage.setItem("messages", JSON.stringify(messages));
-        localStorage.setItem("rooms", JSON.stringify(roomsState));
+        localStorage.setItem("rooms", JSON.stringify(rooms));
         this.setState({
           messages: messages,
           rooms: rooms,
@@ -746,7 +747,7 @@ let Message = create({
       classArray += " media";
       if (this.props.event.content.info == undefined ||
           this.props.event.content.info.thumbnail_info == undefined) {
-        media = <a href={m_download(this.props.event.content.url)}><span>no thumbnail available</span></a>
+        media = <a href={m_download(this.props.event.content.url)}><span className="nothumb">no thumbnail available</span></a>
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
         if (this.props.event.content.msgtype == "m.image") {
