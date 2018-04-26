@@ -2,7 +2,7 @@
 <a href="https://liberapay.com/f0x/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>  
 
 <img src="https://f.0x52.eu/media/neo.png" alt="Screenshot">  
-Try it now at [https://f.0x52.eu/neo](https://f.0x52.eu/neo)
+Try it now at https://f.0x52.eu/neo
 
 ## About
 Neo is a react.js webclient for [Matrix](https://matrix.org). It's mainly
