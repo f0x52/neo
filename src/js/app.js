@@ -104,6 +104,7 @@ let App = create({
             messages[roomid] = events;
           }
           messages[roomid].sort(sortEvents);
+          messages[roomid] = uniq(messages[roomid], uniqEvents);
           roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
           roomsState[roomid].prev_batch = rooms[roomid].timeline.prev_batch;
           for (let i=messages[roomid].length - 1; i>0; i--) {
@@ -154,9 +155,7 @@ let App = create({
           messages[roomid] = responseJson.chunk;
         }
         messages[roomid].sort(sortEvents);
-        messages[roomid] = uniq(messages[roomid], function equals(a, b) {
-          return a.event_id === b.event_id;
-        });
+        messages[roomid] = uniq(messages[roomid], uniqEvents);
         rooms[roomid].prev_batch = responseJson.end;
         this.setState({
           messages: messages,
@@ -190,16 +189,16 @@ let App = create({
           setRoom={this.setRoom}
         />
         <div className="view">
-        <div className="messages" id="message_window">
-          <Messages
-            backlog={this.getBacklog}
-            messages={this.state.messages[this.state.room]}
-            json={this.state.json}
-            token={this.state.loginJson.access_token}
-            room={this.state.room}
-            user={this.state.loginJson.user_id}
-          />
-        </div>
+          <div className="messages" id="message_window">
+            <Messages
+              backlog={this.getBacklog}
+              messages={this.state.messages[this.state.room]}
+              json={this.state.json}
+              token={this.state.loginJson.access_token}
+              room={this.state.room}
+              user={this.state.loginJson.user_id}
+            />
+          </div>
           <div className="input">
             <label htmlFor="attachment">
               <img src={icon.file.dark} id="file" className="dark"/>
@@ -287,7 +286,6 @@ let Send = create({
         .catch(error => console.error('Error:', error))
         .then(response => console.log('Success:', response));
     }
-    console.log(msg);
     textarea.value = "";
     this.resize_textarea();
   },
@@ -587,6 +585,20 @@ let Messages = create({
     })
   },
 
+  componentWillUpdate: function() {
+    var node = ReactDOM.findDOMNode(this);
+    if (node != null) {
+      this.shouldScrollBottom = node.scrollTop + node.offsetHeight === node.scrollHeight;
+    }
+  },
+   
+  componentDidUpdate: function() {
+    if (this.shouldScrollBottom) {
+      var node = ReactDOM.findDOMNode(this);
+      node.scrollTop = node.scrollHeight
+    }
+  },
+
   get_userinfo: function(id) {
     let token = this.props.token;
     let userinfo = this.state.userinfo;
@@ -811,6 +823,10 @@ function m_download(mxc) {
 
 function sortEvents(a, b) {
   return a.origin_server_ts-b.origin_server_ts
+}
+
+function uniqEvents(a, b) {
+  return a.event_id === b.event_id;
 }
 
 ReactDOM.render(
