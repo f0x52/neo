@@ -4,12 +4,16 @@ import Linkify from 'react-linkify';
 
 import '../scss/layout.scss';
 
-let riot = require('./riot-utils.js');
+let uniq = require('arr-uniq');
+let defaultValue = require('default-value');
 let create = require('create-react-class');
+
+let persistLocalStorage = require('./lib/persist-local-storage');
+let riot = require('./lib/riot-utils.js');
+
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
-let uniq = require('arr-uniq');
 
 let homeserver = "https://matrix.org";
 if (localStorage.getItem("hs")) {
@@ -93,14 +97,16 @@ let App = create({
     if (this.state.syncing) {
       return;
     }
+
     this.setLoading(1);
     this.setState({syncing: 1});
-    let url = homeserver + 
-      "/_matrix/client/r0/sync?timeout=30000&access_token=" + 
-      this.state.loginJson.access_token;
+
+    let url = `${homeserver}/_matrix/client/r0/sync?timeout=30000&access_token=${this.state.loginJson.access_token}`;
+
     if(this.state.json.next_batch != undefined) {
       url = url + "&since=" + this.state.json.next_batch;
     }
+
     fetch(url)
       .then((response) => response.json())
       .catch(error => console.error('Error:', error))
@@ -108,59 +114,79 @@ let App = create({
         if (responseJson == undefined) {
           return;
         }
-        let rooms = responseJson.rooms.join;
-        let roomsState = this.state.rooms;
+
+        let remoteRooms = responseJson.rooms.join;
+        let localRooms = this.state.rooms;
         let messages = this.state.messages;
-        for(let roomid in rooms) {
-          let events = rooms[roomid].timeline.events;
-          if (messages[roomid] != undefined) {
-            for (let event in events) {
-              messages[roomid].push(events[event]);
-            }
-          } else {
-            messages[roomid] = events;
+
+        Object.keys(remoteRooms).forEach((roomId) => {
+          let remoteRoom = remoteRooms[roomId];
+
+          let combinedMessages = this.addMessages(roomId, remoteRoom.timeline.events);
+
+          messages[roomId] = combinedMessages;
+
+          function findLast(array, predicate) {
+            return array.slice().reverse().find(predicate);
           }
-          messages[roomid].sort(sortEvents);
-          messages[roomid] = uniq(messages[roomid], uniqEvents);
-          roomsState[roomid] = messages[roomid][messages[roomid].length - 1];
-          roomsState[roomid].prev_batch = rooms[roomid].timeline.prev_batch;
-          for (let i=messages[roomid].length - 1; i>0; i--) {
-            //Try get the last message with text content
-            if(messages[roomid][i].content.body != undefined) {
-              roomsState[roomid].lastmessage = messages[roomid][i].content.body;
-              roomsState[roomid].origin_server_ts = messages[roomid][i].origin_server_ts;
-              break;
-            }
+
+          if (localRooms[roomId] == null) {
+            localRooms[roomId] = {};
           }
-        }
-        localStorage.setItem("messages", JSON.stringify(messages));
-        localStorage.setItem("rooms", JSON.stringify(roomsState));
+
+          localRooms[roomId].lastMessage = findLast(combinedMessages, (message) => {
+            return (message.content.body != null);
+          });
+
+          if (localRooms[roomId] == null) {
+            localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
+          }
+        });
+
+        persistLocalStorage({
+          messages: messages,
+          rooms: localRooms
+        });
+
         this.setState({
           messages: messages,
           json: responseJson,
-          rooms: roomsState
+          rooms: localRooms
         });
+
         this.setLoading(0);
         this.setState({syncing: 0});
     });
   },
 
-  getBacklog: function(roomid) {
+  addMessages: function (roomId, messages) {
+    let concatenatedMessages = defaultValue(this.state.messages[roomId], []).concat(messages);
+    let uniqueMessages = uniq(concatenatedMessages, uniqEvents).sort(sortEvents);
+
+    /* FIXME: This should set state as well. */
+
+    return uniqueMessages;
+  },
+
+  getBacklog: function(roomId) {
     if (this.state.backlog == 1) {
       return;
     }
     this.setState({backlog: 1});
     let messages = this.state.messages;
     let rooms = this.state.rooms;
-    let from = rooms[roomid].prev_batch;
+    let from = rooms[roomId].prev_batch;
 
-    let url = homeserver + 
-      "/_matrix/client/r0/rooms/" + roomid +
-      "/messages?from=" + from +
-      "&limit=50" +
-      "&dir=b" +
-      "&access_token=" + 
-      this.state.loginJson.access_token;
+    url.stringify({
+      host: homeserver,
+      path: `/_matrix/client/r0/rooms/${roomId}/messages`,
+      query: {
+        from: from,
+        limit: 50,
+        dir: "b",
+        access_token: this.state.loginJson.access_token
+      }
+    });
 
     fetch(url)
       .then((response) => response.json())
@@ -169,18 +195,16 @@ let App = create({
         this.setState({backlog: 0});
       })
       .then((responseJson) => {
-        if (messages[roomid] != undefined) {
-          for (let event in responseJson.chunk) {
-            messages[roomid].push(responseJson.chunk[event]);
-          }
-        } else {
-          messages[roomid] = responseJson.chunk;
-        }
-        messages[roomid].sort(sortEvents);
-        messages[roomid] = uniq(messages[roomid], uniqEvents);
-        rooms[roomid].prev_batch = responseJson.end;
-        localStorage.setItem("messages", JSON.stringify(messages));
-        localStorage.setItem("rooms", JSON.stringify(rooms));
+        let combinedMessages = this.addMessages(roomId, responseJson.chunk);
+        messages[roomId] = combinedMessages;
+
+        rooms[roomId].prev_batch = responseJson.end;
+
+        persistLocalStorage({
+          messages: messages,
+          rooms: rooms
+        });
+
         this.setState({
           messages: messages,
           rooms: rooms,
@@ -348,7 +372,7 @@ let Attachment = create ({
     ).then(response => {
       console.log('Success:', response)
       this.setState({"url": response.content_uri});
-      
+
       let unixtime = Date.now()
 
       let msg_url = homeserver +
@@ -385,7 +409,7 @@ let Attachment = create ({
             info.thumbnail_url = response.content_uri;
             info.mimetype = this.state.file.type;
 
-            let body = { 
+            let body = {
               "msgtype": "m.image",
               "url": this.state.url,
               "body": this.state.file.name,
@@ -403,7 +427,7 @@ let Attachment = create ({
             .then(response => console.log('Success:', response));
         })});
       } else {
-        let body = { 
+        let body = {
           "msgtype": "m.file",
           "url": response.content_uri,
           "body": this.state.file.name,
@@ -514,12 +538,12 @@ let List = create({
     let rooms = this.props.rooms;
     let sortedRooms = Object.keys(rooms).sort(
       function(a, b) {
-        return rooms[b].origin_server_ts - rooms[a].origin_server_ts;
+        return rooms[b].lastMessage.origin_server_ts - rooms[a].lastMessage.origin_server_ts;
       }
     );
-    let list = sortedRooms.map((roomid) => 
+    let list = sortedRooms.map((roomid) =>
       <RoomEntry
-        lastEvent={rooms[roomid]}
+        lastEvent={rooms[roomid].lastMessage}
         active={this.props.room == roomid}
         key={roomid}
         id={roomid}
@@ -610,7 +634,7 @@ let RoomEntry = create({
           {time_string}
         </span>
         <span className="last_msg">
-          {this.props.lastEvent.lastmessage}
+          {this.props.lastEvent.content.body}
         </span>
       </div>
     );
@@ -710,13 +734,13 @@ let Messages = create({
           event.membership = event.content.membership;
         }
         switch (event.membership) {
-          case "leave" : 
+          case "leave" :
             action = " left";
             break;
-          case "join" : 
+          case "join" :
             action = " joined";
             break;
-          case "invite" : 
+          case "invite" :
             action = " invited " + event.state_key;
             break;
           default:
