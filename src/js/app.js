@@ -41,9 +41,9 @@ let App = create({
       loginJson = JSON.parse(localStorage.getItem("loginJson"));
       console.log("loaded loginJson from storage");
       if(localStorage.getItem("version") == "0.01") {
-        console.log("loaded rooms/messages from storage");
-        rooms = JSON.parse(localStorage.getItem("rooms"));
-        messages = JSON.parse(localStorage.getItem("messages"));
+        //console.log("loaded rooms/messages from storage");
+        //rooms = JSON.parse(localStorage.getItem("rooms"));
+        //messages = JSON.parse(localStorage.getItem("messages"));
       } else {
         localStorage.setItem("version", "0.01");
       }
