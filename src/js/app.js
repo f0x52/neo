@@ -138,6 +138,11 @@ let App = create({
             return (message.content.body != null);
           });
 
+          localRooms[roomId].lastMessage = defaultValue(
+            localRooms[roomId].lastMessage,
+            combinedMessages[combinedMessages.length - 1]
+          )
+
           if (localRooms[roomId] == null) {
             localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
           }
