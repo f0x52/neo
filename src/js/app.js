@@ -7,6 +7,8 @@ import '../scss/layout.scss';
 let uniq = require('arr-uniq');
 let defaultValue = require('default-value');
 let create = require('create-react-class');
+let urllib = require('url');
+let debounce = require('debounce');
 
 let persistLocalStorage = require('./lib/persist-local-storage');
 let riot = require('./lib/riot-utils.js');
@@ -182,23 +184,18 @@ let App = create({
     let rooms = this.state.rooms;
     let from = rooms[roomId].prev_batch;
 
-    url.stringify({
-      host: homeserver,
-      path: `/_matrix/client/r0/rooms/${roomId}/messages`,
+    let reqUrl = urllib.format(Object.assign(urllib.parse(homeserver), {
+      pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
       query: {
         from: from,
         limit: 50,
         dir: "b",
         access_token: this.state.loginJson.access_token
       }
-    });
+    }));
 
-    fetch(url)
+    fetch(reqUrl)
       .then((response) => response.json())
-      .catch(error => {
-        console.error('Error:', error);
-        this.setState({backlog: 0});
-      })
       .then((responseJson) => {
         let combinedMessages = this.addMessages(roomId, responseJson.chunk);
         messages[roomId] = combinedMessages;
@@ -245,15 +242,13 @@ let App = create({
           setRoom={this.setRoom}
         />
         <div className="view">
-          <div className="messages" id="message_window">
-            <Messages
-              backlog={this.getBacklog}
-              messages={this.state.messages[this.state.room]}
-              token={this.state.loginJson.access_token}
-              room={this.state.room}
-              user={this.state.loginJson.user_id}
-            />
-          </div>
+          <Room
+            backlog={this.getBacklog}
+            messages={this.state.messages[this.state.room]}
+            token={this.state.loginJson.access_token}
+            room={this.state.room}
+            user={this.state.loginJson.user_id}
+          />
           <div className="input">
             <label htmlFor="attachment">
               <img src={icon.file.dark} id="file" className="dark"/>
@@ -646,11 +641,70 @@ let RoomEntry = create({
   }
 })
 
+let Room = create({
+  displayName: "Room",
+  getInitialState: function() {
+    return({
+      scroll: {},
+			element: null
+    });
+  },
+
+  setRef: function(element) {
+    element.addEventListener("scroll", debounce(this.onScroll, 10));
+    this.setState({element: element});
+  },
+
+  onScroll: function(event) {
+    this.setState({
+      scroll: Object.assign({}, this.state.scroll, {
+        [this.props.room]: this.state.element.scrollTop
+      })
+    })
+  },
+  
+  componentDidUpdate: function() {
+    if (this.props.room != this.state.lastRoom) {
+      if (this.state.scroll[this.props.room] != undefined) {
+        this.state.element.scrollTop = this.state.scroll[this.props.room];
+      }
+      this.setState({
+        lastRoom: this.props.room
+      });
+    }
+  },
+
+  scrollToBottom: function() {
+    element.scrollTop = element.scrollHeight - element.clientHeight;
+  },
+
+  render: function() {
+		let scroll = 0;
+		if (this.state.element != null) {
+    	scroll = this.state.element.scrollHeight - this.state.scroll[this.props.room] - this.state.element.clientHeight
+		}
+    return(
+      <div className="messages" id="message_window" ref={this.setRef}>
+        <Messages
+          backlog={this.props.backlog}
+          messages={this.props.messages}
+          token={this.props.token}
+          room={this.props.room}
+          user={this.props.user}
+          scrollToBottom={this.scrollToBottom}
+					scroll={scroll}
+        />
+      </div>
+    );
+  }
+})
+
 let Messages = create({
   displayName: "Messages",
   getInitialState: function() {
     return({
-      userinfo: []
+      userinfo: [],
+      shouldGoToBottom: 0
     })
   },
 
