@@ -646,7 +646,7 @@ let Room = create({
   getInitialState: function() {
     return({
       scroll: {},
-			element: null
+      element: null
     });
   },
 
@@ -679,10 +679,10 @@ let Room = create({
   },
 
   render: function() {
-		let scroll = 0;
-		if (this.state.element != null) {
-    	scroll = this.state.element.scrollHeight - this.state.scroll[this.props.room] - this.state.element.clientHeight
-		}
+    let scroll = 0;
+    if (this.state.element != null) {
+      scroll = this.state.element.scrollHeight - this.state.scroll[this.props.room] - this.state.element.clientHeight
+    }
     return(
       <div className="messages" id="message_window" ref={this.setRef}>
         <Messages
@@ -692,7 +692,7 @@ let Room = create({
           room={this.props.room}
           user={this.props.user}
           scrollToBottom={this.scrollToBottom}
-					scroll={scroll}
+          scroll={scroll}
         />
       </div>
     );
