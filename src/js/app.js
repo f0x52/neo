@@ -894,6 +894,7 @@ let Message = create({
     } else if (this.props.event.content.msgtype == "m.file") {
       media = <a
         className="file"
+        target="_blank" 
         href={m_download(this.props.event.content.url)}
       >
         <span>file download</span>
@@ -989,7 +990,7 @@ function uniqEvents(a, b) {
 function image(src, thumb, h, w) {
   return(
     <div>
-      <a href={src}>
+      <a target="_blank" href={src}>
         <img
           src={thumb}
           height={h}
