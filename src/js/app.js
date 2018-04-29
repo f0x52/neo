@@ -658,15 +658,31 @@ let Room = create({
   onScroll: function(event) {
     this.setState({
       scroll: Object.assign({}, this.state.scroll, {
-        [this.props.room]: this.state.element.scrollTop
+        [this.props.room]: this.getScroll()
       })
     })
+  },
+
+  getScroll: function() {
+    if (this.state.element == null) {
+      return null;
+    }
+    return ({
+      scrollTop: this.state.element.scrollTop,
+      scrollHeight: this.state.element.scrollHeight,
+      clientHeight: this.state.element.clientHeight
+    });
   },
   
   componentDidUpdate: function() {
     if (this.props.room != this.state.lastRoom) {
       if (this.state.scroll[this.props.room] != undefined) {
-        this.state.element.scrollTop = this.state.scroll[this.props.room];
+        let scrollProps = this.state.scroll[this.props.room];
+        if (scrollProps.scrollHeight - scrollProps.scrollTop - scrollProps.clientHeight < 100) {
+          this.scrollToBottom();
+        } else {
+          this.state.element.scrollTop = scrollProps.scrollTop;
+        }
       }
       this.setState({
         lastRoom: this.props.room
@@ -675,13 +691,14 @@ let Room = create({
   },
 
   scrollToBottom: function() {
-    element.scrollTop = element.scrollHeight - element.clientHeight;
+    let scrollProps = this.state.scroll[this.props.room];
+    this.state.element.scrollTop = scrollProps.scrollHeight - scrollProps.clientHeight + 100;
   },
 
   render: function() {
-    let scroll = 0;
-    if (this.state.element != null) {
-      scroll = this.state.element.scrollHeight - this.state.scroll[this.props.room] - this.state.element.clientHeight
+    let scroll = {};
+    if (this.state.scroll[this.props.room] != null) {
+      scroll = this.state.scroll[this.props.room];
     }
     return(
       <div className="messages" id="message_window" ref={this.setRef}>
@@ -692,6 +709,8 @@ let Room = create({
           room={this.props.room}
           user={this.props.user}
           scrollToBottom={this.scrollToBottom}
+          getScroll={this.getScroll}
+          onScroll={this.onScroll}
           scroll={scroll}
         />
       </div>
@@ -749,6 +768,22 @@ let Messages = create({
           this.setState({userinfo: userinfo});
         }
       })
+  },
+
+  componentDidUpdate: function(prevProps, prevState) {
+    let scrollState = this.props.getScroll();
+
+    if (this.props.scroll.scrollTop == null) {
+      this.props.onScroll();
+      return;
+    }
+
+    if (this.props.scroll.scrollHeight != scrollState.scrollHeight) {
+      //New messages were added
+      if (scrollState.scrollHeight - scrollState.scrollTop - scrollState.clientHeight < 200) {
+        this.props.scrollToBottom();
+      }
+    }
   },
 
   render: function() {
