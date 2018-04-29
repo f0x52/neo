@@ -932,27 +932,34 @@ let Message = create({
 
 let MaybeAnImage = create({
   getInitialState: function() {
-    return {img: "no"}
+    return({
+      img: "no",
+      url: ""
+    });
   },
 
   componentDidMount: function() {
+    let url = this.props.href.replace("http://", "https://");
+    this.setState({
+      url: url
+    });
     let img = new Image();
     img.onload = () => this.setState({img: "yes"});
-    img.src = this.props.href;
+    img.src = url;
   },
 
   render: function() {
     if (this.state.img == "yes") {
       return(
         <span>
-          <a href={this.props.href} target="_blank">{this.props.href}</a><br/>
-          <img className="link" src={this.props.href} />
+          <a href={this.props.href} target="_blank">{this.props.children}</a><br/>
+          <img className="link" src={this.state.url} />
         </span>
       )
     }
 
     return (
-      <a href={this.props.href} target="_blank">{this.props.href}</a>
+      <a href={this.props.href} target="_blank">{this.props.children}</a>
     )
   }
 })
