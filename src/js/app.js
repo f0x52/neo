@@ -42,17 +42,6 @@ let App = create({
     if(localStorage.getItem("loginJson")) {
       loginJson = JSON.parse(localStorage.getItem("loginJson"));
       console.log("loaded loginJson from storage");
-      if(localStorage.getItem("version") == "0.01") {
-        //console.log("loaded rooms/messages from storage");
-        //rooms = JSON.parse(localStorage.getItem("rooms"));
-        //messages = JSON.parse(localStorage.getItem("messages"));
-      } else {
-        localStorage.setItem("version", "0.01");
-      }
-      this.timer = setInterval(
-        () => this.sync(),
-        2000
-      )
     }
     return({
       loginJson: loginJson,
@@ -68,7 +57,6 @@ let App = create({
 
   setJson: function(json) {
     this.setState({loginJson: json});
-    localStorage.setItem("loginJson", JSON.stringify(json));
     if (json.access_token) {
       this.timer = setInterval(
         () => this.sync(),
@@ -89,6 +77,10 @@ let App = create({
     this.setState({homeserver: hs});
   },
 
+  componentDidMount: function() {
+    this.sync();
+  },
+
   componentWillUnmount: function() {
     if (this.timer != undefined) {
       clearInterval(this.timer);
@@ -96,13 +88,7 @@ let App = create({
   },
 
   sync: function() {
-    if (this.state.syncing) {
-      return;
-    }
-
     this.setLoading(1);
-    this.setState({syncing: 1});
-
     let url = `${homeserver}/_matrix/client/r0/sync?timeout=30000&access_token=${this.state.loginJson.access_token}`;
 
     if(this.state.json.next_batch != undefined) {
@@ -111,7 +97,10 @@ let App = create({
 
     fetch(url)
       .then((response) => response.json())
-      .catch(error => console.error('Error:', error))
+      .catch((error) => {
+        console.error('Error:', error)
+        this.sync(); //retry
+      })
       .then((responseJson) => {
         if (responseJson == undefined) {
           return;
@@ -150,10 +139,10 @@ let App = create({
           }
         });
 
-        persistLocalStorage({
-          messages: messages,
-          rooms: localRooms
-        });
+        //persistLocalStorage({
+        //  messages: messages,
+        //  rooms: localRooms
+        //});
 
         this.setState({
           messages: messages,
@@ -162,7 +151,7 @@ let App = create({
         });
 
         this.setLoading(0);
-        this.setState({syncing: 0});
+        this.sync();
     });
   },
 
@@ -202,10 +191,10 @@ let App = create({
 
         rooms[roomId].prev_batch = responseJson.end;
 
-        persistLocalStorage({
-          messages: messages,
-          rooms: rooms
-        });
+        //persistLocalStorage({
+        //  messages: messages,
+        //  rooms: rooms
+        //});
 
         this.setState({
           messages: messages,
@@ -875,9 +864,11 @@ let Message = create({
     let media_width = "";
     if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.video") {
       classArray += " media";
+
       if (this.props.event.content.info == undefined ||
-          this.props.event.content.info.thumbnail_info == undefined) {
-        media = <a href={m_download(this.props.event.content.url)}><span className="nothumb">no thumbnail available</span></a>
+        this.props.event.content.info.thumbnail_info == undefined) {
+        let url = m_download(this.props.event.content.url);
+        media = image(url, url);
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
         if (this.props.event.content.msgtype == "m.image") {
@@ -885,14 +876,11 @@ let Message = create({
           if (this.props.event.content.info.mimetype == "image/gif") {
             media_url = this.props.event.content.url;
           }
-          media = (
-            <div>
-              <a href={m_download(this.props.event.content.url)}>
-                <img
-                  src={m_download(media_url)}
-                />
-              </a>
-            </div>
+          media = image(
+            m_download(this.props.event.content.url),
+            m_download(media_url),
+            this.props.event.content.info.thumbnail_info.h,
+            this.props.event.content.info.thumbnail_info.w
           );
         } else {
           media = <video
@@ -989,6 +977,20 @@ function sortEvents(a, b) {
 
 function uniqEvents(a, b) {
   return a.event_id === b.event_id;
+}
+
+function image(src, thumb, h, w) {
+  return(
+    <div>
+      <a href={src}>
+        <img
+          src={thumb}
+          height={h}
+          width={w}
+        />
+      </a>
+    </div>
+  );
 }
 
 ReactDOM.render(
