@@ -52,7 +52,6 @@ let File = create ({
       }).then(
         response => response.json()
       ).then(response => {
-        console.log("uploaded thumb")
         let info = this.state.info;
         info.thumbnail_url = response.content_uri;
         info.mimetype = this.state.file.type;
@@ -77,9 +76,7 @@ let File = create ({
   },
 
   upload: function() {
-    console.log("starting upload");
     let room = this.props.room;
-    console.log(room);
     let file = document.getElementById("attachment").files[0];
     this.setState({file: file});
     let upload_url = urllib.format(Object.assign({}, this.props.user.hs, {
@@ -94,11 +91,8 @@ let File = create ({
     }).then(
       response => response.json()
     ).then(response => {
-      console.log("uploaded file");
       this.setState({"url": response.content_uri});
-
       let unixtime = Date.now()
-      console.log(room);
 
       let msg_url = urllib.format(Object.assign({}, this.props.user.hs, {
         pathname: `/_matrix/client/r0/rooms/${room}/send/m.room.message/${unixtime}`,

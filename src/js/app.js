@@ -374,7 +374,7 @@ let Login = create({
   login: function(event) {
     event.preventDefault();
     this.props.setParentState("loading", 1);
-    homeserver = urllib.parse(this.state.homeserver); //TODO: Error handling
+    let homeserver = urllib.parse(this.state.homeserver); //TODO: Error handling
     let data = {
       "user": this.state.user,
       "password": this.state.pass,
