@@ -11,7 +11,6 @@ let urllib = require('url');
 let debounce = require('debounce');
 
 let persistLocalStorage = require('./lib/persist-local-storage');
-let riot = require('./lib/riot-utils.js');
 let File = require('./components/fileUpload');
 
 let neo = require('../assets/neo_full.png');
@@ -236,7 +235,7 @@ let App = create({
             </label>
             <File
               room={this.state.room}
-              token={this.state.user.access_token}
+              user={this.state.user}
             />
             <Send
               room={this.state.room}
