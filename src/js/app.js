@@ -12,15 +12,11 @@ let debounce = require('debounce');
 
 let persistLocalStorage = require('./lib/persist-local-storage');
 let riot = require('./lib/riot-utils.js');
+let File = require('./components/fileUpload');
 
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
-
-let homeserver = "https://matrix.org";
-if (localStorage.getItem("hs")) {
-  homeserver = localStorage.getItem("hs");
-}
 
 let icon = {
   file: {
@@ -36,69 +32,61 @@ let icon = {
 let App = create({
   displayName: "App",
   getInitialState: function() {
-    let loginJson = {};
+    let user = {};
     let rooms = {};
     let messages = {};
-    if(localStorage.getItem("loginJson")) {
-      loginJson = JSON.parse(localStorage.getItem("loginJson"));
-      console.log("loaded loginJson from storage");
+    if(localStorage.getItem("user")) {
+      user = JSON.parse(localStorage.getItem("user"));
+      console.log("loaded user data from storage");
     }
     return({
-      loginJson: loginJson,
-      json: {rooms:{join:{}}},
+      user: user,
       rooms: rooms,
       messages: messages,
       loading: 0,
-      syncing: 0,
       room: 0,
       backlog: 0
     });
   },
 
-  setJson: function(json) {
-    this.setState({loginJson: json});
-    if (json.access_token) {
-      this.timer = setInterval(
-        () => this.sync(),
-        2000
-      )
-    }
-  },
-
-  setLoading: function(loading) {
-    this.setState({loading: loading});
-  },
-
-  setRoom: function(room) {
-    this.setState({room: room});
-  },
-
-  setHs: function(hs) {
-    this.setState({homeserver: hs});
-  },
-
   componentDidMount: function() {
-    this.sync();
+    if (this.state.user.access_token != undefined) {
+      this.sync();
+    }
   },
 
-  componentWillUnmount: function() {
-    if (this.timer != undefined) {
-      clearInterval(this.timer);
-    }
+  loginCallback: function(json) {
+    json.hs = urllib.parse("https://" + json.home_server);
+    this.setState({
+      user: json,
+    });
+    localStorage.setItem("user", JSON.stringify(json));
+    this.sync()
+  },
+
+  setStateFromChild: function(prop, value) {
+    this.setState({
+      [prop]: value
+    });
   },
 
   sync: function() {
-    this.setLoading(1);
-    let url = `${homeserver}/_matrix/client/r0/sync?timeout=30000&access_token=${this.state.loginJson.access_token}`;
+    this.setState({loading: 1});
+    let url = Object.assign({}, this.state.user.hs, {
+      pathname: "/_matrix/client/r0/sync",
+      query: {
+        timeout: 30000,
+        access_token: this.state.user.access_token
+      }
+    })
 
-    if(this.state.json.next_batch != undefined) {
-      url = url + "&since=" + this.state.json.next_batch;
+    if(this.state.user.next_batch != undefined) {
+      url.query.since = this.state.user.next_batch;
     }
-
-    fetch(url)
+    fetch(urllib.format(url))
       .then((response) => response.json())
       .catch((error) => {
-        console.error('Error:', error)
+        console.error('Error:', error);
         this.sync(); //retry
       })
       .then((responseJson) => {
@@ -144,13 +132,16 @@ let App = create({
         //  rooms: localRooms
         //});
 
+        let user = Object.assign(this.state.user, {
+          next_batch: responseJson.next_batch
+        })
+
         this.setState({
           messages: messages,
-          json: responseJson,
-          rooms: localRooms
+          user: user,
+          rooms: localRooms,
+          loading: 0
         });
-
-        this.setLoading(0);
         this.sync();
     });
   },
@@ -173,13 +164,13 @@ let App = create({
     let rooms = this.state.rooms;
     let from = rooms[roomId].prev_batch;
 
-    let reqUrl = urllib.format(Object.assign(urllib.parse(homeserver), {
+    let reqUrl = urllib.format(Object.assign({}, this.state.user.hs, {
       pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
       query: {
         from: from,
         limit: 50,
         dir: "b",
-        access_token: this.state.loginJson.access_token
+        access_token: this.state.user.access_token
       }
     }));
 
@@ -209,47 +200,47 @@ let App = create({
     if (this.state.loading) {
       loading = <img className="loading" src={loadingGif} alt="loading"/>
     }
-    if (!this.state.loginJson.access_token) {
+    if (!this.state.user.access_token) {
       return (
         <div className="login">
           {loading}
           <Login
-            setJson={this.setJson}
-            setHs={this.setHs}
+            loginCallback={this.loginCallback}
             setLoading={this.setLoading}
+            setParentState={this.setStateFromChild}
           />
         </div>
       );
     }
+
     return (
       <div className="main">
         <div>{loading}</div>
         <List
           room={this.state.room}
           rooms={this.state.rooms}
-          token={this.state.loginJson.access_token}
-          setRoom={this.setRoom}
+          user={this.state.user}
+          setParentState={this.setStateFromChild}
         />
         <div className="view">
           <Room
             backlog={this.getBacklog}
             messages={this.state.messages[this.state.room]}
-            token={this.state.loginJson.access_token}
             room={this.state.room}
-            user={this.state.loginJson.user_id}
+            user={this.state.user}
           />
           <div className="input">
             <label htmlFor="attachment">
               <img src={icon.file.dark} id="file" className="dark"/>
               <img src={icon.file.light} id="file" className="light"/>
             </label>
-            <Attachment
+            <File
               room={this.state.room}
-              token={this.state.loginJson.access_token}
+              token={this.state.user.access_token}
             />
             <Send
               room={this.state.room}
-              token={this.state.loginJson.access_token}
+              user={this.state.user}
             />
             <img src={icon.send.dark} id="send" className="dark"/>
             <img src={icon.send.light} id="send" className="light"/>
@@ -259,10 +250,6 @@ let App = create({
     );
   }
 })
-
-let observe = function (element, event, handler) {
-  element.addEventListener(event, handler, false)
-}
 
 let Send = create({
   displayName: "Send",
@@ -302,13 +289,12 @@ let Send = create({
         textarea.value = ""
         let unixtime = Date.now()
 
-        let url = homeserver +
-        "/_matrix/client/r0/rooms/" +
-        this.props.room +
-        "/send/m.room.message/" +
-        unixtime +
-        "?access_token=" +
-        this.props.token
+        let url = urllib.format(Object.assign({}, this.props.user.hs, {
+          pathname: `/_matrix/client/r0/rooms/${this.props.room}/send/m.room.message/${unixtime}`,
+          query: {
+            access_token: this.props.user.access_token
+          }
+        }));
 
         let body = {
           "msgtype": "m.text",
@@ -341,110 +327,6 @@ let Send = create({
   }
 })
 
-let Attachment = create ({
-  displayName: "Attachment",
-  componentDidMount: function() {
-    document.getElementById("attachment").addEventListener('change', this.upload, false);
-  },
-
-  upload: function() {
-    let file = document.getElementById("attachment").files[0];
-    this.setState({file: file});
-    let upload_url = homeserver +
-      "/_matrix/media/r0/upload" +
-      "?access_token=" + this.props.token
-    fetch(upload_url, {
-      method: 'POST',
-      body: this.state.file,
-    }).then(
-      response => response.json()
-    ).then(response => {
-      console.log('Success:', response)
-      this.setState({"url": response.content_uri});
-
-      let unixtime = Date.now()
-
-      let msg_url = homeserver +
-      "/_matrix/client/r0/rooms/" +
-      this.props.room +
-      "/send/m.room.message/" +
-      unixtime +
-      "?access_token=" +
-      this.props.token;
-
-      if (this.state.file.type.startsWith("image/")) { //image, so create a thumbnail as well
-        let thumbnailType = "image/png";
-        let imageInfo;
-
-        if (this.state.file.type == "image/jpeg") {
-            thumbnailType = "image/jpeg";
-        }
-
-        riot.loadImageElement(this.state.file).bind(this).then(function(img) {
-          return riot.createThumbnail(img,
-            img.width,
-            img.height,
-            thumbnailType);
-        }).then(function(result) {
-          imageInfo = result.info;
-          this.setState({"info": imageInfo});
-          fetch(upload_url, {
-            method: 'POST',
-            body: result.thumbnail,
-          }).then(
-            response => response.json()
-          ).then(response => {
-            let info = this.state.info;
-            info.thumbnail_url = response.content_uri;
-            info.mimetype = this.state.file.type;
-
-            let body = {
-              "msgtype": "m.image",
-              "url": this.state.url,
-              "body": this.state.file.name,
-              "info": info
-            }
-
-            fetch(msg_url, {
-              method: 'PUT',
-              body: JSON.stringify(body),
-              headers: new Headers({
-                'Content-Type': 'application/json'
-              })
-            }).then(res => res.json())
-            .catch(error => console.error('Error:', error))
-            .then(response => console.log('Success:', response));
-        })});
-      } else {
-        let body = {
-          "msgtype": "m.file",
-          "url": response.content_uri,
-          "body": this.state.file.name,
-          "info": {
-            "mimetype": this.state.file.type
-          }
-        }
-
-        fetch(msg_url, {
-          method: 'PUT',
-          body: JSON.stringify(body),
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }).then(res => res.json())
-        .catch(error => console.error('Error:', error))
-        .then(response => console.log('Success:', response));
-      }
-    });
-  },
-
-  render: function() {
-    return (
-      <input id="attachment" type="file"/>
-    )
-  }
-})
-
 let Login = create({
   displayName: "Login",
   getInitialState: function() {
@@ -452,7 +334,6 @@ let Login = create({
       user: "",
       pass: "",
       homeserver: "https://matrix.org",
-      error: undefined,
       json: {},
     });
   },
@@ -493,30 +374,40 @@ let Login = create({
 
   login: function(event) {
     event.preventDefault();
-    this.props.setLoading(1);
-    this.props.setHs(this.state.homeserver);
-    localStorage.setItem("hs", this.state.homeserver);
-    homeserver = this.state.homeserver;
+    this.props.setParentState("loading", 1);
+    homeserver = urllib.parse(this.state.homeserver); //TODO: Error handling
     let data = {
       "user": this.state.user,
       "password": this.state.pass,
       "type": "m.login.password",
-      "initial_device_display_name": "Neo Webclient",
+      "initial_device_display_name": "Neo",
     };
-    fetch(this.state.homeserver + "/_matrix/client/r0/login", {
+
+    let url = urllib.format(Object.assign(homeserver, {
+      pathname: "/_matrix/client/r0/login"
+    }))
+
+    fetch(url, {
       body: JSON.stringify(data),
       headers: {
         'content-type': 'application/json'
       },
       method: 'POST',
-    })
-    .then((response) => response.json())
-    .then((responseJson) => {
+    }).then((response) => {
+        if (!response.ok) {
+          throw Error(response.statusText);
+        }
+        return response.json()
+    }).then((responseJson) => {
       this.setState({json: responseJson});
       if(responseJson.access_token != undefined) {
-        this.props.setJson(responseJson);
+        this.props.loginCallback(responseJson);
       }
-      this.props.setLoading(0);
+      this.props.setParentState("loading", 0);
+    }).catch((error) => {
+      this.setState({json: {error: "Error contacting homeserver"}});
+      console.error(error);
+      this.props.setParentState("loading", 0);
     });
   }
 })
@@ -536,8 +427,8 @@ let List = create({
         active={this.props.room == roomid}
         key={roomid}
         id={roomid}
-        token={this.props.token}
-        setRoom={this.props.setRoom}
+        user={this.props.user}
+        setParentState={this.props.setParentState}
       />
     );
     return(
@@ -558,11 +449,13 @@ let RoomEntry = create({
   },
 
   componentDidMount: function() {
-    let url = homeserver +
-      "/_matrix/client/r0/rooms/" +
-      this.props.id +
-      "/state/m.room.name?access_token=" +
-      this.props.token;
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.name`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
     fetch(url)
       .then(response => response.json())
       .then(responseJson => {
@@ -571,19 +464,22 @@ let RoomEntry = create({
         }
       })
 
-    url = homeserver +
-      "/_matrix/client/r0/rooms/" +
-      this.props.id +
-      "/state/m.room.avatar?access_token=" +
-      this.props.token;
+    url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.avatar`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
     fetch(url)
       .then(response => response.json())
       .then(responseJson => {
         if(responseJson.errcode == undefined) {
+          let avatar_url = responseJson.url.substring(6);
           this.setState({
-            img: homeserver +
-            "/_matrix/media/r0/download/" +
-            responseJson.url.substring(6)
+            img: urllib.format(Object.assign({}, this.props.user.hs, {
+              pathname: `/_matrix/media/r0/download/${avatar_url}`
+            }))
           });
         }
       })
@@ -606,7 +502,7 @@ let RoomEntry = create({
         id="room_item"
         className={this.props.active ? "active" : ""}
         onClick={() => {
-          this.props.setRoom(this.props.id)
+          this.props.setParentState("room", this.props.id);
           let win = document.getElementById("message_window");
           win.scrollTop = win.scrollHeight; //force scroll to bottom
         }}>
@@ -694,7 +590,6 @@ let Room = create({
         <Messages
           backlog={this.props.backlog}
           messages={this.props.messages}
-          token={this.props.token}
           room={this.props.room}
           user={this.props.user}
           scrollToBottom={this.scrollToBottom}
@@ -717,18 +612,17 @@ let Messages = create({
   },
 
   get_userinfo: function(id) {
-    let token = this.props.token;
     let userinfo = this.state.userinfo;
-    userinfo[id] = {};
-    userinfo[id].name = id;
-    userinfo[id].img  = blank;
+    userinfo[id] = {name: id, img: blank};
     this.setState({userinfo: userinfo});
 
-    let url = homeserver +
-      "/_matrix/client/r0/profile/" +
-      id +
-      "/displayname?access_token=" +
-      token;
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/profile/${id}/displayname`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
     this.nameFetch = fetch(url)
       .then(response => response.json())
       .then(responseJson => {
@@ -739,21 +633,26 @@ let Messages = create({
         }
       })
 
-    this.imgFetch = url = homeserver +
-      "/_matrix/client/r0/profile/" +
-      id +
-      "/avatar_url?access_token=" +
-      token;
-    fetch(url)
+    url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/profile/${id}/avatar_url`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    this.imgFetch = fetch(url)
       .then(response => response.json())
       .then(responseJson => {
         if(responseJson.errcode == undefined &&
           responseJson.avatar_url != undefined) {
           userinfo = this.state.userinfo;
-          userinfo[id].img = homeserver +
-            "/_matrix/media/r0/thumbnail/" +
-            responseJson.avatar_url.substring(6) +
-            "?width=64&height=64";
+          userinfo[id].img = urllib.format(Object.assign({}, this.props.user.hs, {
+            pathname: `/_matrix/media/r0/thumbnail/${responseJson.avatar_url.substring(6)}`,
+            query: {
+              width: 64,
+              height: 64
+            }
+          }))
           this.setState({userinfo: userinfo});
         }
       })
@@ -809,6 +708,7 @@ let Messages = create({
             event={event}
             source={event.sender == this.props.user ? "out" : "in"}
             group="no"
+            user={this.props.user}
           />
         )
       } else if (event.type == "m.room.member") {
@@ -867,7 +767,7 @@ let Message = create({
 
       if (this.props.event.content.info == undefined ||
         this.props.event.content.info.thumbnail_info == undefined) {
-        let url = m_download(this.props.event.content.url);
+        let url = m_download(this.props.user.hs, this.props.event.content.url);
         media = image(url, url);
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
@@ -877,15 +777,15 @@ let Message = create({
             media_url = this.props.event.content.url;
           }
           media = image(
-            m_download(this.props.event.content.url),
-            m_download(media_url),
+            m_download(this.props.user.hs, this.props.event.content.url),
+            m_download(this.props.user.hs, media_url),
             this.props.event.content.info.thumbnail_info.h,
             this.props.event.content.info.thumbnail_info.w
           );
         } else {
           media = <video
-              src={m_download(this.props.event.content.url)}
-              poster={m_download(this.props.event.content.info.thumbnail_url)}
+              src={m_download(this.props.user.hs, this.props.event.content.url)}
+              poster={m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url)}
               controls
               preload="none"
             ></video>;
@@ -895,7 +795,7 @@ let Message = create({
       media = <a
         className="file"
         target="_blank" 
-        href={m_download(this.props.event.content.url)}
+        href={m_download(this.props.user.hs, this.props.event.content.url)}
       >
         <span>file download</span>
       </a>
@@ -965,18 +865,20 @@ let MaybeAnImage = create({
   }
 })
 
-function m_thumbnail(mxc, w, h) {
-  return homeserver +
-    "/_matrix/media/r0/thumbnail/" +
-    mxc.substring(6) +
-    "?width=" + w +
-    "&height=" + h;
+function m_thumbnail(hs, mxc, w, h) {
+  return urllib.format(Object.assign({}, hs, {
+    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
+    query: {
+      width: w,
+      height: h
+    }
+  }));
 }
 
-function m_download(mxc) {
-  return homeserver +
-    "/_matrix/media/r0/download/" +
-    mxc.substring(6);
+function m_download(hs, mxc) {
+  return urllib.format(Object.assign({}, hs, {
+    pathname: `/_matrix/media/r0/download/${mxc.substring(6)}`
+  }));
 }
 
 function sortEvents(a, b) {
@@ -985,6 +887,10 @@ function sortEvents(a, b) {
 
 function uniqEvents(a, b) {
   return a.event_id === b.event_id;
+}
+
+function observe(element, event, handler) {
+  element.addEventListener(event, handler, false)
 }
 
 function image(src, thumb, h, w) {
