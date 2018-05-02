@@ -21,7 +21,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.01";
+let VERSION = "alpha0.02";
 
 let icon = {
   file: {
