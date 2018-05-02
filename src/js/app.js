@@ -1,8 +1,9 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+const React = require('react');
+const ReactDOM = require('react-dom');
 import Linkify from 'react-linkify';
+const Promise = require('bluebird');
 
-import '../scss/layout.scss';
+require('../scss/layout.scss');
 
 let uniq = require('arr-uniq');
 let defaultValue = require('default-value');
@@ -19,6 +20,8 @@ let RoomList = require('./components/roomList');
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
+
+let VERSION = "alpha0.01";
 
 let icon = {
   file: {
@@ -38,14 +41,17 @@ let App = create({
   displayName: "App",
   getInitialState: function() {
     let user = {};
+    let userinfo = {};
     let rooms = {};
     let messages = {};
-    if(localStorage.getItem("user")) {
+    if(localStorage.getItem("version") == VERSION) {
       user = JSON.parse(localStorage.getItem("user"));
+      userinfo = JSON.parse(localStorage.getItem("userinfo"));
       console.log("loaded user data from storage");
     }
     return({
       user: user,
+      userinfo: userinfo,
       rooms: rooms,
       messages: messages,
       loading: 0,
@@ -62,11 +68,66 @@ let App = create({
 
   loginCallback: function(json) {
     json.hs = urllib.parse("https://" + json.home_server);
+    this.get_userinfo(json.user_id, json);
+    localStorage.setItem("version", VERSION);
+    localStorage.setItem("user", JSON.stringify(json));
     this.setState({
       user: json,
     });
-    localStorage.setItem("user", JSON.stringify(json));
-    this.sync()
+    this.sync();
+  },
+
+  get_userinfo: function(id, user) {
+    let userState = this.state.user;
+    if (user != undefined) {
+      userState = user;
+    }
+    let userinfo = this.state.userinfo;
+    userinfo[id] = {name: id, img: blank};
+    this.setState({userinfo: userinfo});
+
+    let url = urllib.format(Object.assign({}, userState.hs, {
+      pathname: `/_matrix/client/r0/profile/${id}/displayname`,
+      query: {
+        access_token: userState.access_token
+      }
+    }));
+
+    this.nameFetch = fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.displayname != undefined) {
+          userinfo = this.state.userinfo;
+          userinfo[id].name = responseJson.displayname;
+          this.setState({userinfo: userinfo});
+          localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
+        }
+      })
+
+    url = urllib.format(Object.assign({}, userState.hs, {
+      pathname: `/_matrix/client/r0/profile/${id}/avatar_url`,
+      query: {
+        access_token: userState.access_token
+      }
+    }));
+
+    this.imgFetch = fetch(url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if(responseJson.errcode == undefined &&
+          responseJson.avatar_url != undefined) {
+          userinfo = this.state.userinfo;
+          userinfo[id].img = urllib.format(Object.assign({}, userState.hs, {
+            pathname: `/_matrix/media/r0/thumbnail/${responseJson.avatar_url.substring(6)}`,
+            query: {
+              width: 64,
+              height: 64
+            }
+          }))
+          this.setState({userinfo: userinfo});
+          localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
+        }
+      })
   },
 
   setStateFromChild: function(prop, value) {
@@ -235,6 +296,8 @@ let App = create({
           room={this.state.room}
           rooms={this.state.rooms}
           user={this.state.user}
+          userinfo={this.state.userinfo}
+          get_userinfo={this.get_userinfo}
           setParentState={this.setStateFromChild}
           icon={icon}
           logout={this.logout}
@@ -245,6 +308,8 @@ let App = create({
             messages={this.state.messages[this.state.room]}
             room={this.state.room}
             user={this.state.user}
+            userinfo={this.state.userinfo}
+            get_userinfo={this.get_userinfo}
           />
           <div className="input">
             <label htmlFor="attachment">
@@ -501,6 +566,8 @@ let Room = create({
           getScroll={this.getScroll}
           onScroll={this.onScroll}
           scroll={scroll}
+          userinfo={this.props.userinfo}
+          get_userinfo={this.props.get_userinfo}
         />
       </div>
     );
@@ -514,53 +581,6 @@ let Messages = create({
       userinfo: [],
       shouldGoToBottom: 0
     })
-  },
-
-  get_userinfo: function(id) {
-    let userinfo = this.state.userinfo;
-    userinfo[id] = {name: id, img: blank};
-    this.setState({userinfo: userinfo});
-
-    let url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: `/_matrix/client/r0/profile/${id}/displayname`,
-      query: {
-        access_token: this.props.user.access_token
-      }
-    }));
-
-    this.nameFetch = fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if (responseJson.displayname != undefined) {
-          userinfo = this.state.userinfo;
-          userinfo[id].name = responseJson.displayname;
-          this.setState({userinfo: userinfo});
-        }
-      })
-
-    url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: `/_matrix/client/r0/profile/${id}/avatar_url`,
-      query: {
-        access_token: this.props.user.access_token
-      }
-    }));
-
-    this.imgFetch = fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if(responseJson.errcode == undefined &&
-          responseJson.avatar_url != undefined) {
-          userinfo = this.state.userinfo;
-          userinfo[id].img = urllib.format(Object.assign({}, this.props.user.hs, {
-            pathname: `/_matrix/media/r0/thumbnail/${responseJson.avatar_url.substring(6)}`,
-            query: {
-              width: 64,
-              height: 64
-            }
-          }))
-          this.setState({userinfo: userinfo});
-        }
-      })
   },
 
   componentDidUpdate: function(prevProps, prevState) {
@@ -588,8 +608,8 @@ let Messages = create({
       let next_event = parseInt(event_num)+1;
 
       if (event.grouped != 1 && event.type == "m.room.message") {
-        if (this.state.userinfo[event.sender] == undefined) {
-          this.get_userinfo(event.sender);
+        if (this.props.userinfo[event.sender] == undefined) {
+          this.props.get_userinfo(event.sender);
         }
 
         while (this.props.messages[next_event] != undefined &&
@@ -608,7 +628,7 @@ let Messages = create({
         return (
           <Message
             key={event.event_id}
-            info={this.state.userinfo[event.sender]}
+            info={this.props.userinfo[event.sender]}
             id={event.sender}
             event={event}
             source={event.sender == this.props.user ? "out" : "in"}

@@ -43,6 +43,8 @@ let List = create({
         key={roomid}
         id={roomid}
         user={this.props.user}
+        userinfo={this.props.userinfo}
+        get_userinfo={this.props.get_userinfo}
         setParentState={this.props.setParentState}
       />
     );
@@ -60,6 +62,7 @@ let List = create({
             setParentState={this.setStateFromChild}
             logout={this.props.logout}
             user={this.props.user}
+            userinfo={this.props.userinfo}
           />
           <div className="joinedRooms">
             {list}
@@ -112,8 +115,8 @@ let Menu = create({
       <React.Fragment>
         <div style={style} id="menu">
           <div id="user">
-            <img src={neo} alt="Neo"/>
-            <span>Username</span>
+            <img src={this.props.userinfo[this.props.user.user_id].img}/>
+            <span>{this.props.userinfo[this.props.user.user_id].name}</span>
           </div>
           {/*<div>New Room</div>*/}
           <div onClick={this.join}>Join Room</div>
@@ -253,6 +256,10 @@ let RoomEntry = create({
         "." + time.getDay().toString().padStart(2, "0") +
         "." + time.getFullYear();
     }
+    if (this.props.userinfo[this.props.lastEvent.sender] == undefined) {
+      this.props.get_userinfo(this.props.lastEvent.sender);
+    }
+    let user = this.props.userinfo[this.props.lastEvent.sender].name;
     return (
       <div
         id="room_item"
@@ -275,7 +282,7 @@ let RoomEntry = create({
           {time_string}
         </span>
         <span className="last_msg">
-          {this.props.lastEvent.content.body}
+          <b>{user}:</b> {this.props.lastEvent.content.body}
         </span>
       </div>
     );
