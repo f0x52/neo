@@ -2,12 +2,15 @@ $fg: #dedede;
 $bg: #1d1f21;
 $anim_color: #fff;
 
+$red: #bd2929;
+$green: #2dbd29;
+
 .light {
   display: none;
 }
 
-.red  { color: #cc6666}
-.green  { color: #b5bd68}
+.red    { color: $red}
+.green  { color: $green}
 .yellow { color: #f0c674}
 .blue   { color: #81a2be}
 .purple { color: #b294bb}
@@ -28,6 +31,10 @@ a:hover {
   color: darken($fg, 5);
 }
 
+.error {
+  color: $red;
+}
+
 .login {
   form {
     input, button {
@@ -38,7 +45,17 @@ a:hover {
   }
 }
 
+#join {
+  input {
+    color: $fg;
+  }
+}
+
 .main {
+  .darken {
+    background-color: hsla(0, 0%, 0%, 0); /* animated: hsla(0, 0%, 0%, 0.5) */
+  }
+
   .list {
     background-color: $bg;
 

@@ -423,10 +423,6 @@ let Login = create({
   },
 
   render: function() {
-    let error;
-    if (this.state.json.error != undefined) {
-      error = <span id="error" className="red">{this.state.json.error}</span>
-    }
     return (
       <center>
           <img id="header" src={neo}/>
@@ -439,7 +435,9 @@ let Login = create({
               value={this.state.homeserver} onChange={this.handleHs}/><br/>
             <button type="submit" onClick={this.login}>Log in</button>
           </form>
-          {error}
+          {this.state.json.error &&
+            <span className="error">{this.state.json.error}</span>
+          }
         </center>
     );
   },
