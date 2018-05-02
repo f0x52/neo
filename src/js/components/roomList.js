@@ -198,6 +198,41 @@ let Join = create({
   }
 })
 
+let Invites = create({
+  displayName: "Invites",
+  render: function() {
+    if (!this.props.invites) {
+      return null;
+    }
+    return(
+      <div
+        id="room_item"
+        className={this.props.active ? "active" : ""}
+        onClick={() => {
+          this.props.setParentState("room", this.props.id);
+          let win = document.getElementById("message_window");
+          win.scrollTop = win.scrollHeight; //force scroll to bottom
+        }}>
+        <img
+          height="70px"
+          width="70px"
+          src={this.state.img}
+          onError={(e)=>{e.target.src = blank}}
+        />
+        <span id="name">
+          {this.state.name}
+        </span><br/>
+        <span className="timestamp">
+          {time_string}
+        </span>
+        <span className="last_msg">
+          <b>{user}:</b> {this.props.lastEvent.content.body}
+        </span>
+      </div>
+    );
+  }
+})
+
 let RoomEntry = create({
   displayName: "RoomEntry",
   getInitialState: function() {

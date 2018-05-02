@@ -53,6 +53,7 @@ let App = create({
       user: user,
       userinfo: userinfo,
       rooms: rooms,
+      invites: {},
       messages: messages,
       loading: 0,
       room: 0,
@@ -295,6 +296,7 @@ let App = create({
         <RoomList
           room={this.state.room}
           rooms={this.state.rooms}
+          invites={this.state.invites}
           user={this.state.user}
           userinfo={this.state.userinfo}
           get_userinfo={this.get_userinfo}
