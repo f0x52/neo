@@ -35,11 +35,11 @@ let File = create ({
         }
       }));
 
-      if (this.state.file.type.startsWith("image/")) { //m.image, so create a thumbnail as well
+      if (this.state.file.type.startsWith("image/")) { //m.image
         this.uploadImage(upload_url, msg_url);
       } else if (this.state.file.type.startsWith("video/")) { //m.video
-        this.uploadVideo(msg_url);
-      } else {
+        this.uploadVideo(upload_url, msg_url);
+      } else { //m.file
         this.uploadFile(msg_url);
       }
     });
@@ -60,7 +60,7 @@ let File = create ({
         thumbnailType);
     }).then(function(result) {
       imageInfo = result.info;
-      this.setState({"info": imageInfo});
+      this.setState({info: imageInfo});
       fetch(upload_url, {
         method: 'POST',
         body: result.thumbnail,
@@ -90,25 +90,43 @@ let File = create ({
     })});
   },
 
-  uploadVideo: function(msg_url) {
-    let body = {
-      "msgtype": "m.video",
-      "url": this.state.url,
-      "body": this.state.file.name,
-      "info": {
-        "mimetype": this.state.file.type
-      }
-    }
+  uploadVideo: function(upload_url, msg_url) {
+    const thumbnailType = "image/jpeg";
+    let videoInfo;
 
-    fetch(msg_url, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-      headers: new Headers({
-        'Content-Type': 'application/json'
+    riot.loadVideoElement(this.state.file).bind(this).then(function(video) {
+      return riot.createThumbnail(video, video.videoWidth, video.videoHeight, thumbnailType);
+    }).then(function(result) {
+      videoInfo = result.info;
+      this.setState({info: videoInfo});
+      fetch(upload_url, {
+        method: 'POST',
+        body: result.thumbnail,
+      }).then(
+        response => response.json()
+      ).then((response) => {
+        let info = this.state.info;
+        info.thumbnail_url = response.content_uri;
+        info.mimetype = this.state.file.type;
+
+        let body = {
+          "msgtype": "m.video",
+          "url": this.state.url,
+          "body": this.state.file.name,
+          "info": info
+        }
+
+        fetch(msg_url, {
+          method: 'PUT',
+          body: JSON.stringify(body),
+          headers: new Headers({
+            'Content-Type': 'application/json'
+          })
+        }).then(res => res.json())
+        .catch(error => console.error('Error:', error))
+        .then(response => console.log('sent file event', response));
       })
-    }).then(res => res.json())
-    .catch(error => console.error('Error:', error))
-    .then(response => console.log('sent file event', response));
+    })
   },
 
   uploadFile: function(msg_url) {

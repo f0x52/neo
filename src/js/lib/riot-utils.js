@@ -94,5 +94,36 @@ module.exports = {
           reject(e);
       };
     });
+  },
+
+  /**
+   * Load a file into a newly created video element.
+   *
+   * @param {File} file The file to load in an video element.
+   * @return {Promise} A promise that resolves with the video image element.
+   */
+  loadVideoElement: function(videoFile) {
+    return new Promise(function(resolve, reject) {
+      // Load the file into an html element
+      const video = document.createElement("video");
+  
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        video.src = e.target.result;
+  
+        // Once ready, returns its size
+        // Wait until we have enough data to thumbnail the first frame.
+        video.onloadeddata = function() {
+          resolve(video);
+        };
+        video.onerror = function(e) {
+          reject(e);
+        };
+      };
+      reader.onerror = function(e) {
+        reject(e);
+      };
+      reader.readAsDataURL(videoFile);
+    })
   }
 }
