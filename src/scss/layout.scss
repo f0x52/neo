@@ -240,7 +240,10 @@ html, body {
 
 
           a img, video {
+            max-height: 80vh;
             max-width: 100%;
+            height: auto;
+            width: auto;
             margin-top: 5px;
             border: 1px solid lighten($bg, 1);
           }
