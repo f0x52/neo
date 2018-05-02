@@ -11,7 +11,10 @@ let urllib = require('url');
 let debounce = require('debounce');
 
 let persistLocalStorage = require('./lib/persist-local-storage');
+
+// Components
 let File = require('./components/fileUpload');
+let RoomList = require('./components/roomList');
 
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
@@ -25,6 +28,9 @@ let icon = {
   send: {
     dark: require('../assets/dark/send.svg'),
     light: require('../assets/light/send.svg')
+  },
+  hamburger: {
+    dark: require('../assets/dark/hamburger.svg')
   }
 }
 
@@ -215,11 +221,12 @@ let App = create({
     return (
       <div className="main">
         <div>{loading}</div>
-        <List
+        <RoomList
           room={this.state.room}
           rooms={this.state.rooms}
           user={this.state.user}
           setParentState={this.setStateFromChild}
+          icon={icon}
         />
         <div className="view">
           <Room
@@ -408,120 +415,6 @@ let Login = create({
       console.error(error);
       this.props.setParentState("loading", 0);
     });
-  }
-})
-
-let List = create({
-  displayName: "List",
-  render: function() {
-    let rooms = this.props.rooms;
-    let sortedRooms = Object.keys(rooms).sort(
-      function(a, b) {
-        return rooms[b].lastMessage.origin_server_ts - rooms[a].lastMessage.origin_server_ts;
-      }
-    );
-    let list = sortedRooms.map((roomid) =>
-      <RoomEntry
-        lastEvent={rooms[roomid].lastMessage}
-        active={this.props.room == roomid}
-        key={roomid}
-        id={roomid}
-        user={this.props.user}
-        setParentState={this.props.setParentState}
-      />
-    );
-    return(
-      <div className="list no-select" id="list">
-        {list}
-      </div>
-    );
-  },
-})
-
-let RoomEntry = create({
-  displayName: "RoomEntry",
-  getInitialState: function() {
-    return ({
-      name: this.props.id,
-      img: blank,
-    });
-  },
-
-  componentDidMount: function() {
-    let url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.name`,
-      query: {
-        access_token: this.props.user.access_token
-      }
-    }));
-
-    fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if (responseJson.name != undefined) {
-          this.setState({name: responseJson.name});
-        }
-      })
-
-    url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.avatar`,
-      query: {
-        access_token: this.props.user.access_token
-      }
-    }));
-
-    fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if(responseJson.errcode == undefined) {
-          let avatar_url = responseJson.url.substring(6);
-          this.setState({
-            img: urllib.format(Object.assign({}, this.props.user.hs, {
-              pathname: `/_matrix/media/r0/download/${avatar_url}`
-            }))
-          });
-        }
-      })
-  },
-
-  render: function() {
-    let time = new Date(this.props.lastEvent.origin_server_ts);
-    let now = new Date();
-    let time_string;
-    if (time.toDateString() == now.toDateString()) {
-      time_string = time.getHours().toString().padStart(2, "0") +
-        ":" + time.getMinutes().toString().padStart(2, "0");
-    } else {
-      time_string = time.getMonth().toString().padStart(2, "0") +
-        "." + time.getDay().toString().padStart(2, "0") +
-        "." + time.getFullYear();
-    }
-    return (
-      <div
-        id="room_item"
-        className={this.props.active ? "active" : ""}
-        onClick={() => {
-          this.props.setParentState("room", this.props.id);
-          let win = document.getElementById("message_window");
-          win.scrollTop = win.scrollHeight; //force scroll to bottom
-        }}>
-        <img
-          height="70px"
-          width="70px"
-          src={this.state.img}
-          onError={(e)=>{e.target.src = blank}}
-        />
-        <span id="name">
-          {this.state.name}
-        </span><br/>
-        <span className="timestamp">
-          {time_string}
-        </span>
-        <span className="last_msg">
-          {this.props.lastEvent.content.body}
-        </span>
-      </div>
-    );
   }
 })
 

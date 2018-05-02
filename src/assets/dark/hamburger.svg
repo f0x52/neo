@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="48"
+   height="48"
+   viewBox="0 0 12.7 12.7"
+   version="1.1"
+   id="svg1038"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   sodipodi:docname="hamburger.svg">
+  <defs
+     id="defs1032" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="14.46875"
+     inkscape:cx="20.975382"
+     inkscape:cy="28.082223"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     units="px"
+     inkscape:window-width="1908"
+     inkscape:window-height="1036"
+     inkscape:window-x="5"
+     inkscape:window-y="37"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata1035">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-284.29997)">
+    <rect
+       style="fill:#dedede;fill-opacity:1;stroke:none;stroke-width:0.44089279;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect5286"
+       width="7.9375"
+       height="0.79374999"
+       x="2.3812499"
+       y="287.42847" />
+    <rect
+       style="fill:#dedede;fill-opacity:1;stroke:none;stroke-width:0.44089279;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect5286-7"
+       width="7.9375"
+       height="0.79374999"
+       x="2.3812499"
+       y="290.25308" />
+    <rect
+       style="fill:#dedede;fill-opacity:1;stroke:none;stroke-width:0.44089279;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+       id="rect5286-5"
+       width="7.9375"
+       height="0.79374999"
+       x="2.3812499"
+       y="293.0777" />
+  </g>
+</svg>

@@ -40,16 +40,23 @@ a:hover {
 
 .main {
   .list {
-    div {
-      background-color: $bg;
-      #room_item {
-        border: 1px solid lighten($bg, 5);
-        border-bottom: none;
-      }
+    background-color: $bg;
 
-      .timestamp {
-        background-color: $bg;
-      }
+    .header {
+      background-color: darken($bg, 1);
+    }
+
+    #menu {
+      background-color: $bg;
+    }
+
+    #room_item {
+      border: 1px solid lighten($bg, 2);
+      border-bottom: none;
+    }
+
+    .timestamp {
+      background-color: $bg;
     }
 
     .active, .active .timestamp {
