@@ -58,13 +58,8 @@ html, body {
   input {
     border: 1px solid;
     background: $bg;
-    color: $fg;
     margin: 5px;
     padding: 5px;
-  }
-
-  .error {
-    color: red;
   }
 }
 
@@ -80,7 +75,6 @@ html, body {
     top: 0;
     left: 0;
     z-index: -1; /* 50 */
-    background-color: hsla(0, 0%, 0%, 0); /* hsla(0, 0%, 0%, 0.5) */
     transition: 0.4s;
   }
 
