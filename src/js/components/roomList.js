@@ -55,7 +55,7 @@ let List = create({
             <img src={this.props.icon.hamburger.dark} alt="menu" onClick={this.toggleMenu}/>
             <span>Neo</span> {/* Can be used for search later*/}
           </div>
-          <Menu menu={this.state.menu} setParentState={this.setStateFromChild}/>
+          <Menu menu={this.state.menu} setParentState={this.setStateFromChild} logout={this.props.logout}/>
           {list}
         </div>
       </React.Fragment>
@@ -64,8 +64,25 @@ let List = create({
 })
 
 let Menu = create({
+  getInitialState: function() {
+    return ({
+      settings: false
+    });
+  },
+
   close: function() {
     this.props.setParentState("menu", false);
+    this.setState({settings: false});
+  },
+
+  settings: function() {
+    this.props.setParentState("menu", false);
+    this.setState({settings: true});
+  },
+
+  logout: function() {
+    this.props.setParentState("menu", false);
+    this.props.logout();
   },
 
   render: function() {
@@ -80,15 +97,32 @@ let Menu = create({
     }
 
     return (
-      <div style={style} id="menu">
-        <div id="user">
-          <img src={neo} alt="Neo"/>
-          <span>Username</span>
+      <React.Fragment>
+        <div style={style} id="menu">
+          <div id="user">
+            <img src={neo} alt="Neo"/>
+            <span>Username</span>
+          </div>
+          <div>New Room</div>
+          <div onClick={this.settings}>Settings</div>
+          <div onClick={this.logout}>Log out</div>
         </div>
-        <div>New Room</div>
-        <div>Settings</div>
-      </div>
+        <Settings settings={this.state.settings}/>
+      </React.Fragment>
     );
+  }
+})
+
+let Settings = create({
+  render: function() {
+    if (this.props.settings) {
+      return (
+        <div id="settings">
+          <h1>No settings yet!</h1>
+        </div>
+      );
+    }
+    return null;
   }
 })
 

@@ -75,6 +75,14 @@ let App = create({
     });
   },
 
+  logout: function() {
+    localStorage.removeItem("user");
+    this.setState({
+      user: {},
+      logout: true
+    })
+  },
+
   sync: function() {
     this.setState({loading: 1});
     let url = Object.assign({}, this.state.user.hs, {
@@ -147,7 +155,9 @@ let App = create({
           rooms: localRooms,
           loading: 0
         });
-        this.sync();
+        if (!this.state.logout) {
+          this.sync();
+        }
     });
   },
 
@@ -227,6 +237,7 @@ let App = create({
           user={this.state.user}
           setParentState={this.setStateFromChild}
           icon={icon}
+          logout={this.logout}
         />
         <div className="view">
           <Room
@@ -428,8 +439,10 @@ let Room = create({
   },
 
   setRef: function(element) {
-    element.addEventListener("scroll", debounce(this.onScroll, 10));
-    this.setState({element: element});
+    if (element != null) {
+      element.addEventListener("scroll", debounce(this.onScroll, 10));
+      this.setState({element: element});
+    }
   },
 
   onScroll: function(event) {
