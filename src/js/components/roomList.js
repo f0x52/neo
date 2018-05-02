@@ -55,8 +55,15 @@ let List = create({
             <img src={this.props.icon.hamburger.dark} alt="menu" onClick={this.toggleMenu}/>
             <span>Neo</span> {/* Can be used for search later*/}
           </div>
-          <Menu menu={this.state.menu} setParentState={this.setStateFromChild} logout={this.props.logout}/>
-          {list}
+          <Menu
+            menu={this.state.menu}
+            setParentState={this.setStateFromChild}
+            logout={this.props.logout}
+            user={this.props.user}
+          />
+          <div className="joinedRooms">
+            {list}
+          </div>
         </div>
       </React.Fragment>
     );
@@ -72,7 +79,12 @@ let Menu = create({
 
   close: function() {
     this.props.setParentState("menu", false);
-    this.setState({settings: false});
+    this.setState({settings: false, join: false});
+  },
+
+  join: function() {
+    this.props.setParentState("menu", false);
+    this.setState({join: true});
   },
 
   settings: function() {
@@ -103,11 +115,13 @@ let Menu = create({
             <img src={neo} alt="Neo"/>
             <span>Username</span>
           </div>
-          <div>New Room</div>
+          {/*<div>New Room</div>*/}
+          <div onClick={this.join}>Join Room</div>
           <div onClick={this.settings}>Settings</div>
           <div onClick={this.logout}>Log out</div>
         </div>
         <Settings settings={this.state.settings}/>
+        <Join join={this.state.join} user={this.props.user}/>
       </React.Fragment>
     );
   }
@@ -119,6 +133,61 @@ let Settings = create({
       return (
         <div id="settings">
           <h1>No settings yet!</h1>
+        </div>
+      );
+    }
+    return null;
+  }
+})
+
+let Join = create({
+  getInitialState: function() {
+    return ({
+      error: null
+    });
+  },
+
+  join: function(event) {
+    event.preventDefault();
+    let id = document.getElementById("roomid").value;
+
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/join/${id}`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    fetch(url, {
+      method: 'POST'
+    })
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.error != undefined) {
+          this.setState({error: responseJson.error});
+        }
+      })
+  },
+
+  setRef: function(element) {
+    if (element != null) {
+      element.addEventListener("submit", this.join)
+    }
+  },
+
+  render: function() {
+    if (this.props.join) {
+      return (
+        <div id="join">
+          <h1>Join an existing Room</h1>
+          <form ref={this.setRef}>
+            <label htmlFor="roomid">Room Id or Alias: </label>
+            <input type="text" id="roomid" />
+            <input type="submit" value="Join room" />
+            {this.state.error &&
+              <div className="error">{this.state.error}</div>
+            }
+          </form>
         </div>
       );
     }
