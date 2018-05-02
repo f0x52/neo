@@ -9,25 +9,40 @@ let File = create ({
     document.getElementById("attachment").addEventListener('change', this.upload, false); //TODO: update to ref
   },
 
-  uploadFile: function(msg_url) {
-    let body = {
-      "msgtype": "m.file",
-      "url": response.content_uri,
-      "body": this.state.file.name,
-      "info": {
-        "mimetype": this.state.file.type
+  upload: function() {
+    let room = this.props.room;
+    let file = document.getElementById("attachment").files[0];
+    this.setState({file: file});
+    let upload_url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: "/_matrix/media/r0/upload/",
+      query: {
+        access_token: this.props.user.access_token
       }
-    }
+    }));
+    fetch(upload_url, {
+      method: 'POST',
+      body: this.state.file,
+    }).then(
+      response => response.json()
+    ).then(response => {
+      this.setState({"url": response.content_uri});
+      let unixtime = Date.now()
 
-    fetch(msg_url, {
-      method: 'PUT',
-      body: JSON.stringify(body),
-      headers: new Headers({
-        'Content-Type': 'application/json'
-      })
-    }).then(res => res.json())
-    .catch(error => console.error('Error:', error))
-    .then(response => console.log('sent file event', response));
+      let msg_url = urllib.format(Object.assign({}, this.props.user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${room}/send/m.room.message/${unixtime}`,
+        query: {
+          access_token: this.props.user.access_token
+        }
+      }));
+
+      if (this.state.file.type.startsWith("image/")) { //m.image, so create a thumbnail as well
+        this.uploadImage(upload_url, msg_url);
+      } else if (this.state.file.type.startsWith("video/")) { //m.video
+        this.uploadVideo(msg_url);
+      } else {
+        this.uploadFile(msg_url);
+      }
+    });
   },
 
   uploadImage: function(upload_url, msg_url) {
@@ -75,38 +90,46 @@ let File = create ({
     })});
   },
 
-  upload: function() {
-    let room = this.props.room;
-    let file = document.getElementById("attachment").files[0];
-    this.setState({file: file});
-    let upload_url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: "/_matrix/media/r0/upload/",
-      query: {
-        access_token: this.props.user.access_token
+  uploadVideo: function(msg_url) {
+    let body = {
+      "msgtype": "m.video",
+      "url": this.state.url,
+      "body": this.state.file.name,
+      "info": {
+        "mimetype": this.state.file.type
       }
-    }));
-    fetch(upload_url, {
-      method: 'POST',
-      body: this.state.file,
-    }).then(
-      response => response.json()
-    ).then(response => {
-      this.setState({"url": response.content_uri});
-      let unixtime = Date.now()
+    }
 
-      let msg_url = urllib.format(Object.assign({}, this.props.user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${room}/send/m.room.message/${unixtime}`,
-        query: {
-          access_token: this.props.user.access_token
-        }
-      }));
+    fetch(msg_url, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    }).then(res => res.json())
+    .catch(error => console.error('Error:', error))
+    .then(response => console.log('sent file event', response));
+  },
 
-      if (this.state.file.type.startsWith("image/")) { //image, so create a thumbnail as well
-        this.uploadImage(upload_url, msg_url);
-      } else {
-        this.uploadFile(msg_url);
+  uploadFile: function(msg_url) {
+    let body = {
+      "msgtype": "m.file",
+      "url": this.state.url,
+      "body": this.state.file.name,
+      "info": {
+        "mimetype": this.state.file.type
       }
-    });
+    }
+
+    fetch(msg_url, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    }).then(res => res.json())
+    .catch(error => console.error('Error:', error))
+    .then(response => console.log('sent file event', response));
   },
 
   render: function() {

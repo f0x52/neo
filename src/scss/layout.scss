@@ -190,6 +190,7 @@ html, body {
         div {
           display: inline-block;
           width: 100%;
+          overflow: hidden;
 
           b {
             margin: 5px 10px;
@@ -202,9 +203,10 @@ html, body {
           }
 
 
-          a img {
+          a img, video {
             max-width: 100%;
             margin-top: 5px;
+            border: 1px solid lighten($bg, 1);
           }
 
           .flex {

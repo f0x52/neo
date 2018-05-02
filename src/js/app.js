@@ -654,35 +654,42 @@ let Message = create({
 
     let media = "";
     let media_width = "";
-    if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.video") {
+    if (this.props.event.content.msgtype == "m.image") {
       classArray += " media";
-
       if (this.props.event.content.info == undefined ||
         this.props.event.content.info.thumbnail_info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
-        media = image(url, url);
+        if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
+          media = image(url, url, this.props.event.content.info.h, this.props.event.content.info.w)
+        } else {
+          media = image(url, url);
+        }
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
-        if (this.props.event.content.msgtype == "m.image") {
-          let media_url = this.props.event.content.info.thumbnail_url;
-          if (this.props.event.content.info.mimetype == "image/gif") {
-            media_url = this.props.event.content.url;
-          }
-          media = image(
-            m_download(this.props.user.hs, this.props.event.content.url),
-            m_download(this.props.user.hs, media_url),
-            this.props.event.content.info.thumbnail_info.h,
-            this.props.event.content.info.thumbnail_info.w
-          );
-        } else {
-          media = <video
-              src={m_download(this.props.user.hs, this.props.event.content.url)}
-              poster={m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url)}
-              controls
-              preload="none"
-            ></video>;
+        let media_url = this.props.event.content.info.thumbnail_url;
+        if (this.props.event.content.info.mimetype == "image/gif") {
+          media_url = this.props.event.content.url;
         }
+
+        media = image(
+          m_download(this.props.user.hs, this.props.event.content.url),
+          m_download(this.props.user.hs, media_url),
+          this.props.event.content.info.thumbnail_info.h,
+          this.props.event.content.info.thumbnail_info.w
+        );
       }
+    } else if (this.props.event.content.msgtype == "m.video") {
+      let thumb = ""
+      if (this.props.event.content.info != undefined &&
+        this.props.event.content.info.thumbnail_url != undefined) {
+        thumb = m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url);
+      }
+      media = <video
+          src={m_download(this.props.user.hs, this.props.event.content.url)}
+          poster={thumb}
+          controls
+        ></video>;
+      
     } else if (this.props.event.content.msgtype == "m.file") {
       media = <a
         className="file"
