@@ -711,27 +711,35 @@ let Messages = create({
         )
       } else if (event.type == "m.room.member") {
         let action = "";
+        let reason = "";
         if (event.content.membership) {
           event.membership = event.content.membership;
         }
         switch (event.membership) {
-          case "leave" :
-            action = " left";
+          case "leave":
+            action = "left";
             break;
-          case "join" :
-            action = " joined";
+          case "join":
+            action = "joined";
             break;
-          case "invite" :
-            action = " invited " + event.state_key;
+          case "invite":
+            action = "invited " + event.state_key;
+            break;
+          case "ban":
+            action = "banned " + event.state_key;
             break;
           default:
-            action = " did something";
+            action = "did something";
             console.log(event);
             break;
         }
+
+        if (event.content != undefined && event.content.reason != undefined) {
+          reason = "reason: " + event.content.reason;
+        }
         return (
-          <div className="line member " key={event.event_id}>
-            {event.sender} {action}
+          <div className="line member" key={event.event_id}>
+            {event.sender} {action} {reason}
           </div>
         )
       }
@@ -753,7 +761,15 @@ let Messages = create({
 let Message = create({
   displayName: "Message",
   render: function() {
-    let classArray = ["message", this.props.id].join(" ");
+    let classArray = ["message", this.props.id];
+    if (this.props.event.content.body.includes(this.props.user.username)) {
+      classArray.push("mention");
+    }
+    if (!this.props.user.settings.bool.bubbles) {
+      classArray.push("nobubble");
+    }
+    classArray = classArray.join(" ");
+
     let time = new Date(this.props.event.origin_server_ts)
     let time_string = time.getHours().toString().padStart(2, "0") +
       ":" + time.getMinutes().toString().padStart(2, "0");

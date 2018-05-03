@@ -152,6 +152,7 @@ let Settings = create({
     let user = this.props.user;
     user.settings[cat][setting] = value;
     this.props.setUser("user", user);
+    localStorage.setItem("user", JSON.stringify(user));
   },
 
   render: function() {
@@ -161,14 +162,15 @@ let Settings = create({
 
     let booleans = Object.keys(this.props.user.settings.bool).map((setting, key) => {
       return (
-        <div key={key}>
-          {setting}
+        <div className="bool" key={key}>
+          <span>{setting.charAt(0).toUpperCase() + setting.slice(1)}</span>
           <label className="switch">
             <input type="checkbox" checked={this.props.user.settings.bool[setting]} onChange={(e) => {
               this.setting("bool", setting, e.target.checked);
             }}/>
             <span className="slider"/>
           </label>
+          <br/>
         </div>
       );
     })
@@ -176,7 +178,10 @@ let Settings = create({
     return (
       <div id="settings">
         <h1>Neo Settings</h1>
-        {booleans}
+        <h3>Chat Settings</h3>
+        <div className="boolean">
+          {booleans}
+        </div>
       </div>
     );
   }

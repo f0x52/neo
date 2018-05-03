@@ -129,6 +129,12 @@ a:hover {
           color: darken($fg, 45);
         }
       }
+      .message.mention {
+        border-left: 4px solid $red;
+      }
+      .message.nobubble {
+        background-color: transparent;
+      }
     }
 
     .input {
