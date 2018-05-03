@@ -21,7 +21,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.02";
+let VERSION = "alpha0.03-dev";
 
 let icon = {
   file: {
@@ -44,16 +44,19 @@ let App = create({
     let userinfo = {};
     let rooms = {};
     let messages = {};
+    let invites = {};
     if(localStorage.getItem("version") == VERSION) {
       user = JSON.parse(localStorage.getItem("user"));
       userinfo = JSON.parse(localStorage.getItem("userinfo"));
+      invites = JSON.parse(localStorage.getItem("invites"));
       console.log("loaded user data from storage");
     }
     return({
       user: user,
       userinfo: userinfo,
       rooms: rooms,
-      invites: {},
+      invites: invites,
+      handledInvites: {},
       messages: messages,
       loading: 0,
       room: 0,
@@ -170,7 +173,9 @@ let App = create({
         }
 
         let remoteRooms = responseJson.rooms.join;
+        let remoteInvites = responseJson.rooms.invite;
         let localRooms = this.state.rooms;
+        let localInvites = this.state.invites;
         let messages = this.state.messages;
 
         Object.keys(remoteRooms).forEach((roomId) => {
@@ -202,6 +207,34 @@ let App = create({
           }
         });
 
+        Object.keys(remoteInvites).forEach((roomId) => {
+          if (localInvites[roomId] != undefined && !this.state.handledInvites[roomId]) {
+            //invites will stay in /sync until handled
+            return;
+          }
+          let remoteInvite = remoteInvites[roomId];
+          let name = roomId;
+          let avatar = blank;
+          let invitedBy = null;
+
+          Object.keys(remoteInvite.invite_state.events).forEach((eventId) => {
+            let event = remoteInvite.invite_state.events[eventId];
+            switch(event.type) {
+              case "m.room.name":
+                name = event.content.name;
+                break;
+              case "m.room.avatar":
+                avatar = m_download(this.state.user.hs, event.content.url)
+                break;
+              case "m.room.member":
+                if (event.content.membership == "invite") {
+                  invitedBy = event.sender;
+                }
+                break;
+            }
+          })
+          localInvites[roomId] = {name: name, avatar: avatar, invitedBy: invitedBy};
+        });
         //persistLocalStorage({
         //  messages: messages,
         //  rooms: localRooms
@@ -211,10 +244,13 @@ let App = create({
           next_batch: responseJson.next_batch
         })
 
+        localStorage.setItem("invites", JSON.stringify(localInvites));
+
         this.setState({
           messages: messages,
           user: user,
           rooms: localRooms,
+          invites: localInvites,
           loading: 0
         });
         if (!this.state.logout) {
@@ -272,6 +308,19 @@ let App = create({
       })
   },
 
+  removeInvite: function(roomId) {
+    let invites = this.state.invites;
+    let handledInvites = this.state.handledInvites;
+    delete invites[roomId];
+    handledInvites[roomId] = true;
+
+    this.setState({
+      invites: invites,
+      handledInvites: handledInvites
+    });
+    localStorage.setItem("invites", JSON.stringify(invites));
+  },
+
   render: function() {
     let loading;
     if (this.state.loading) {
@@ -303,6 +352,7 @@ let App = create({
           setParentState={this.setStateFromChild}
           icon={icon}
           logout={this.logout}
+          removeInvite={this.removeInvite}
         />
         <div className="view">
           <Room

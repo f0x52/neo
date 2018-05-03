@@ -64,8 +64,17 @@ let List = create({
             user={this.props.user}
             userinfo={this.props.userinfo}
           />
-          <div className="joinedRooms">
-            {list}
+          <div className="scroll">
+            <Invites 
+              invites={this.props.invites}
+              user={this.props.user}
+              userinfo={this.props.userinfo}
+              get_userinfo={this.props.get_userinfo}
+              remove={this.props.removeInvite}
+            />
+            <div className="joinedRooms">
+              {list}
+            </div>
           </div>
         </div>
       </React.Fragment>
@@ -201,32 +210,105 @@ let Join = create({
 let Invites = create({
   displayName: "Invites",
   render: function() {
-    if (!this.props.invites) {
+    let invites = this.props.invites;
+    let inviteKeys = Object.keys(invites);
+    if (inviteKeys.length == 0) {
       return null;
     }
+    let list = inviteKeys.map((roomId) => 
+      <InviteEntry
+        key={roomId}
+        roomId={roomId}
+        user={this.props.user}
+        userinfo={this.props.userinfo}
+        get_userinfo={this.props.get_userinfo}
+        invite={invites[roomId]}
+        remove={() => this.props.remove(roomId)}
+      />
+    );
+    return (
+      <div className="invites">
+        {list}
+      </div>
+    );
+  }
+})
+
+let InviteEntry = create({
+  displayName: "InviteEntry",
+  componentDidMount: function() {
+    if (this.props.userinfo[this.props.invite.invitedBy] == undefined) {
+      this.props.get_userinfo(this.props.invite.invitedBy);
+    }
+  },
+
+  accept: function() {
+    let id = this.props.roomId;
+    console.log("accepting ", id)
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${id}/join`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    fetch(url, {
+      method: 'POST'
+    })
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.error != undefined) {
+          this.setState({error: responseJson.error});
+          console.error(responseJson);
+        }
+      })
+    this.props.remove();
+  },
+
+  decline: function() {
+    let id = this.props.roomId;
+    console.log("declining ", id)
+
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${id}/leave`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    fetch(url, {
+      method: 'POST'
+    })
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson.error != undefined) {
+          this.setState({error: responseJson.error});
+          console.error(responseJson);
+        }
+      })
+    this.props.remove();
+  },
+
+
+  render: function() {
     return(
       <div
-        id="room_item"
-        className={this.props.active ? "active" : ""}
-        onClick={() => {
-          this.props.setParentState("room", this.props.id);
-          let win = document.getElementById("message_window");
-          win.scrollTop = win.scrollHeight; //force scroll to bottom
-        }}>
+        id="invite_item">
         <img
           height="70px"
           width="70px"
-          src={this.state.img}
+          src={this.props.invite.avatar}
           onError={(e)=>{e.target.src = blank}}
         />
         <span id="name">
-          {this.state.name}
+          {this.props.invite.name}
         </span><br/>
-        <span className="timestamp">
-          {time_string}
-        </span>
         <span className="last_msg">
-          <b>{user}:</b> {this.props.lastEvent.content.body}
+          <b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you
+        </span><br/>
+        <span className="response">
+          <button onClick={this.accept} id="accept">Accept</button>
+          <button onClick={this.decline} id="decline">Decline</button>
         </span>
       </div>
     );

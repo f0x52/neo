@@ -142,48 +142,58 @@ html, body {
       }
     }
 
-    .joinedRooms {
+    .scroll {
       overflow: hidden;
       overflow-y: auto;
       height: calc(100vh - 70px);
+    }
 
-      #room_item {
-        height: 80px;
-        cursor: pointer;
-        display: block;
-        padding: 5px;
-        position: relative;
+    #room_item, #invite_item {
+      height: 80px;
+      cursor: pointer;
+      display: block;
+      padding: 5px;
+      position: relative;
 
-        img {
-          object-fit: cover;
-          position: absolute;
-          left: 10px;
-          top: 10px;
-        }
+      img {
+        object-fit: cover;
+        position: absolute;
+        left: 10px;
+        top: 10px;
+      }
 
-        #name {
-          font-size: 120%;
-          font-weight: bold;
-          padding: 10px;
-          padding-left: 85px;
-          white-space: nowrap;
-        }
+      #name {
+        font-size: 120%;
+        font-weight: bold;
+        padding: 10px;
+        padding-left: 85px;
+        white-space: nowrap;
+      }
 
-        .last_msg {
-          white-space: nowrap;
-          padding: 10px;
-          padding-top: 0;
-          padding-left: 85px;
-          position: absolute;
-          width: 80%;
-          overflow: hidden;
-        }
+      .last_msg {
+        white-space: nowrap;
+        padding: 10px;
+        padding-top: 0;
+        padding-left: 85px;
+        position: absolute;
+        width: 80%;
+        overflow: hidden;
+      }
 
-        .timestamp {
-          position: absolute;
-          padding: 10px;
-          top: 0;
-          right: 0;
+      .timestamp {
+        position: absolute;
+        padding: 10px;
+        top: 0;
+        right: 0;
+      }
+
+      .response {
+        padding-left: 85px;
+
+        button {
+          padding: 2px;
+          margin-right: 5px;
+          cursor: pointer;
         }
       }
     }

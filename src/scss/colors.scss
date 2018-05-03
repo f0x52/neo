@@ -72,6 +72,26 @@ a:hover {
       border-bottom: none;
     }
 
+    #invite_item {
+      border: 1px solid lighten($bg, 3);
+      border-bottom: none;
+      background-color: lighten($bg, 2);
+
+      .response button {
+        border: 1px solid white;
+        color: $fg;
+      }
+
+      .response #accept {
+        background: $green;
+      }
+
+      .response #decline {
+        background: $red;
+      }
+
+    }
+
     .timestamp {
       background-color: $bg;
     }
