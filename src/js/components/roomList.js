@@ -237,7 +237,7 @@ let Invites = create({
 let InviteEntry = create({
   displayName: "InviteEntry",
   componentDidMount: function() {
-    if (this.props.userinfo[this.props.invite.invitedBy] == undefined) {
+    if (this.props.userinfo[this.props.invite.invitedBy] == undefined && this.props.invite.invitedBy != null) {
       this.props.get_userinfo(this.props.invite.invitedBy);
     }
   },
@@ -291,6 +291,10 @@ let InviteEntry = create({
 
 
   render: function() {
+    let user = "";
+    if (this.props.invite.invitedBy != null) {
+      <b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> 
+    }
     return(
       <div
         id="invite_item">
@@ -304,7 +308,7 @@ let InviteEntry = create({
           {this.props.invite.name}
         </span><br/>
         <span className="last_msg">
-          <b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you
+          {user}invited you
         </span><br/>
         <span className="response">
           <button onClick={this.accept} id="accept">Accept</button>
