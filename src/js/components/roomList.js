@@ -236,10 +236,11 @@ let Invites = create({
 
 let InviteEntry = create({
   displayName: "InviteEntry",
-  componentDidMount: function() {
+  getInitialState: function() {
     if (this.props.userinfo[this.props.invite.invitedBy] == undefined && this.props.invite.invitedBy != null) {
       this.props.get_userinfo(this.props.invite.invitedBy);
     }
+    return {};
   },
 
   accept: function() {
@@ -291,9 +292,9 @@ let InviteEntry = create({
 
 
   render: function() {
-    let user = "";
-    if (this.props.invite.invitedBy != null) {
-      <b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> 
+    let msg = "";
+    if (this.props.invite.invitedBy != null && this.props.userinfo[this.props.invite.invitedBy] != undefined) {
+      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you</React.Fragment>
     }
     return(
       <div
@@ -308,7 +309,7 @@ let InviteEntry = create({
           {this.props.invite.name}
         </span><br/>
         <span className="last_msg">
-          {user}invited you
+          {msg}
         </span><br/>
         <span className="response">
           <button onClick={this.accept} id="accept">Accept</button>
