@@ -21,7 +21,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.03-dev";
+let VERSION = "alpha0.03-dev2";
 
 let icon = {
   file: {
@@ -73,6 +73,7 @@ let App = create({
   loginCallback: function(json) {
     json.hs = urllib.parse("https://" + json.home_server);
     this.get_userinfo(json.user_id, json);
+    json.username = json.user_id.split(':')[0].substr(1);
     localStorage.setItem("version", VERSION);
     localStorage.setItem("user", JSON.stringify(json));
     this.setState({
@@ -200,7 +201,19 @@ let App = create({
           localRooms[roomId].lastMessage = defaultValue(
             localRooms[roomId].lastMessage,
             combinedMessages[combinedMessages.length - 1]
-          )
+          );
+
+          let unread = defaultValue(
+            remoteRoom.unread_notifications.notification_count,
+            0
+          );
+
+          let highlight = defaultValue(
+            remoteRoom.unread_notifications.highlight_count,
+            0
+          );
+
+          localRooms[roomId].notif = {unread: unread, highlight: highlight};
 
           if (localRooms[roomId] == null) {
             localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
@@ -739,8 +752,9 @@ let Message = create({
     let media_width = "";
     if (this.props.event.content.msgtype == "m.image") {
       classArray += " media";
-      if (this.props.event.content.info == undefined ||
-        this.props.event.content.info.thumbnail_info == undefined) {
+      if (this.props.event.content.info == undefined) {
+          media = image(url, url);
+      } else if (this.props.event.content.info.thumbnail_info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
         if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
           media = image(url, url, this.props.event.content.info.h, this.props.event.content.info.w)
@@ -801,6 +815,12 @@ let Message = create({
             <div className="flex">
               <p><Linkify component={MaybeAnImage}>{
                 this.props.event.content.body.split('\n').map((item, key) => {
+                  item = item.split(" ").map((str, key) => {
+                    if (str.includes(this.props.user.username)) {
+                      return <span key={key} className="error">{str}</span>
+                    }
+                    return str + " ";
+                  });
                   return <span key={key}>{item}<br/></span>
                 })
               }</Linkify></p>

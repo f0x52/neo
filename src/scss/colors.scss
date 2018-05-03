@@ -92,11 +92,15 @@ a:hover {
 
     }
 
-    .timestamp {
+    .align_right {
       background-color: $bg;
+
+      .unread {
+        background-color: $red;
+      }
     }
 
-    .active, .active .timestamp {
+    .active, .active .align_right {
        background-color: lighten($bg, 3);
     }
   }

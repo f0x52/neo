@@ -39,6 +39,7 @@ let List = create({
     let list = sortedRooms.map((roomid) =>
       <RoomEntry
         lastEvent={rooms[roomid].lastMessage}
+        rooms={rooms}
         active={this.props.room == roomid}
         key={roomid}
         id={roomid}
@@ -46,6 +47,7 @@ let List = create({
         userinfo={this.props.userinfo}
         get_userinfo={this.props.get_userinfo}
         setParentState={this.props.setParentState}
+        notif={rooms[roomid].notif}
       />
     );
 
@@ -364,6 +366,28 @@ let RoomEntry = create({
       })
   },
 
+  switchRoom: function() {
+    this.props.setParentState("room", this.props.id)
+    let user = this.props.user;
+
+    let url = urllib.format(Object.assign({}, user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${this.props.id}/receipt/m.read/${this.props.lastEvent.event_id}`,
+      query: {
+        access_token: user.access_token
+      }
+    }))
+
+    fetch(url, {
+      headers: {
+        'content-type': 'application/json'
+      },
+      method: 'POST',
+    })
+    let rooms = this.props.rooms;
+    rooms[this.props.id].notif = {unread: 0, highlight: 0};
+    this.props.setParentState("rooms", rooms);
+  },
+
   render: function() {
     let time = new Date(this.props.lastEvent.origin_server_ts);
     let now = new Date();
@@ -380,15 +404,15 @@ let RoomEntry = create({
       this.props.get_userinfo(this.props.lastEvent.sender);
     }
     let user = this.props.userinfo[this.props.lastEvent.sender].name;
+    let unread_count = this.props.notif.unread;
+    if (this.props.notif.highlight > 0) {
+      unread_count = "@";
+    }
     return (
       <div
         id="room_item"
         className={this.props.active ? "active" : ""}
-        onClick={() => {
-          this.props.setParentState("room", this.props.id);
-          let win = document.getElementById("message_window");
-          win.scrollTop = win.scrollHeight; //force scroll to bottom
-        }}>
+        onClick={this.switchRoom}>
         <img
           height="70px"
           width="70px"
@@ -398,8 +422,13 @@ let RoomEntry = create({
         <span id="name">
           {this.state.name}
         </span><br/>
-        <span className="timestamp">
-          {time_string}
+        <span className="align_right">
+          <span className="timestamp">
+            {time_string}
+          </span><br/>
+          {this.props.notif.unread > 0 &&
+              <div className="unread">{unread_count}</div>
+          }
         </span>
         <span className="last_msg">
           <b>{user}:</b> {this.props.lastEvent.content.body}

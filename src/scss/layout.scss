@@ -1,7 +1,13 @@
 @import "colors";
 
+@font-face {
+  font-family: "Noto Emoji";
+  src: url(../assets/NotoColorEmoji.ttf) format("truetype");
+}
+
 html, body {
   margin: 0;
+  font-family: "Noto Emoji";
 }
 
 .loading {
@@ -176,15 +182,27 @@ html, body {
         padding-top: 0;
         padding-left: 85px;
         position: absolute;
-        width: 80%;
+        width: calc(80% - 40px);
         overflow: hidden;
       }
 
-      .timestamp {
+      .align_right {
         position: absolute;
         padding: 10px;
         top: 0;
         right: 0;
+
+        .unread {
+          display: inline-block;
+          text-align: center;
+          position: absolute;
+          right: 0;
+          margin: 10px;
+          border-radius: 100px;
+          padding: 4px;
+          font-size: 16px;
+          min-width: 20px;
+        }
       }
 
       .response {
