@@ -753,7 +753,8 @@ let Message = create({
     if (this.props.event.content.msgtype == "m.image") {
       classArray += " media";
       if (this.props.event.content.info == undefined) {
-          media = image(url, url);
+        let url = m_download(this.props.user.hs, this.props.event.content.url);
+        media = image(url, url);
       } else if (this.props.event.content.info.thumbnail_info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
         if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
@@ -817,7 +818,7 @@ let Message = create({
                 this.props.event.content.body.split('\n').map((item, key) => {
                   item = item.split(" ").map((str, key) => {
                     if (str.includes(this.props.user.username)) {
-                      return <span key={key} className="error">{str}</span>
+                      return <span key={key} className="error">{str} </span>
                     }
                     return str + " ";
                   });
