@@ -701,27 +701,35 @@ let Messages = create({
         )
       } else if (event.type == "m.room.member") {
         let action = "";
+        let reason = "";
         if (event.content.membership) {
           event.membership = event.content.membership;
         }
         switch (event.membership) {
-          case "leave" :
-            action = " left";
+          case "leave":
+            action = "left";
             break;
-          case "join" :
-            action = " joined";
+          case "join":
+            action = "joined";
             break;
-          case "invite" :
-            action = " invited " + event.state_key;
+          case "invite":
+            action = "invited " + event.state_key;
+            break;
+          case "ban":
+            action = "banned " + event.state_key;
             break;
           default:
-            action = " did something";
+            action = "did something";
             console.log(event);
             break;
         }
+
+        if (event.content != undefined && event.content.reason != undefined) {
+          reason = "reason: " + event.content.reason;
+        }
         return (
           <div className="line member" key={event.event_id}>
-            {event.sender} {action}
+            {event.sender} {action} {reason}
           </div>
         )
       }
