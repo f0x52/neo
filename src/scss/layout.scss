@@ -250,7 +250,7 @@ html, body {
 
 
           a img, video {
-            max-height: 80vh;
+            max-height: 600px;
             max-width: 100%;
             height: auto;
             width: auto;
@@ -272,6 +272,9 @@ html, body {
 
             .link {
               max-width: 100%;
+              max-height: 600px;
+              width: auto;
+              height: auto;
             }
 
             .timestamp {
