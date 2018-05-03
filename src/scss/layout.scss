@@ -48,6 +48,44 @@ html, body {
   height: 70vh;
   left: 20vw;
   width: 60vw;
+
+  .switch {
+    position: relative;
+    display: inline-block;
+    width: 45px;
+    height: 25px;
+
+    input {display:none;}
+  
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 25px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 23px;
+      width: 23px;
+      left: 1px;
+      bottom: 1px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(23px);
+    }
+  }
+  
 }
 
 #join {
@@ -265,8 +303,6 @@ html, body {
           a img, video {
             max-height: 600px;
             max-width: 100%;
-            height: auto;
-            width: auto;
             margin-top: 5px;
             border: 1px solid lighten($bg, 1);
           }
@@ -309,14 +345,18 @@ html, body {
     }
 
     .split {
-      .in {
-        float: left;
-      }
-
       .out {
-        float: right;
-        #avatar, b, br {
+        text-align: right;
+        #avatar {
           display: none;
+        }
+
+        .message {
+          padding: 2px;
+          text-align: left;
+          div b {
+            display: none;
+          }
         }
       }
     }

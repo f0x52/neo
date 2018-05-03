@@ -64,6 +64,7 @@ let List = create({
             setParentState={this.setStateFromChild}
             logout={this.props.logout}
             user={this.props.user}
+            setUser={this.props.setParentState}
             userinfo={this.props.userinfo}
           />
           <div className="scroll">
@@ -134,7 +135,11 @@ let Menu = create({
           <div onClick={this.settings}>Settings</div>
           <div onClick={this.logout}>Log out</div>
         </div>
-        <Settings settings={this.state.settings}/>
+        <Settings
+          settings={this.state.settings}
+          user={this.props.user}
+          setUser={this.props.setUser}
+        />
         <Join join={this.state.join} user={this.props.user}/>
       </React.Fragment>
     );
@@ -142,15 +147,38 @@ let Menu = create({
 })
 
 let Settings = create({
+  setting: function(cat, setting, value) {
+    console.log(`setting ${setting} to ${value}`);
+    let user = this.props.user;
+    user.settings[cat][setting] = value;
+    this.props.setUser("user", user);
+  },
+
   render: function() {
-    if (this.props.settings) {
+    if (!this.props.settings) {
+      return null
+    }
+
+    let booleans = Object.keys(this.props.user.settings.bool).map((setting, key) => {
       return (
-        <div id="settings">
-          <h1>No settings yet!</h1>
+        <div key={key}>
+          {setting}
+          <label className="switch">
+            <input type="checkbox" checked={this.props.user.settings.bool[setting]} onChange={(e) => {
+              this.setting("bool", setting, e.target.checked);
+            }}/>
+            <span className="slider"/>
+          </label>
         </div>
       );
-    }
-    return null;
+    })
+
+    return (
+      <div id="settings">
+        <h1>Neo Settings</h1>
+        {booleans}
+      </div>
+    );
   }
 })
 

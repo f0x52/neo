@@ -21,7 +21,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.03-dev2";
+let VERSION = "alpha0.03-dev4";
 
 let icon = {
   file: {
@@ -74,6 +74,12 @@ let App = create({
     json.hs = urllib.parse("https://" + json.home_server);
     this.get_userinfo(json.user_id, json);
     json.username = json.user_id.split(':')[0].substr(1);
+    json.settings = {
+      bool: {
+        split: false,
+        bubbles: true
+      }
+    };
     localStorage.setItem("version", VERSION);
     localStorage.setItem("user", JSON.stringify(json));
     this.setState({
@@ -618,8 +624,12 @@ let Room = create({
     if (this.state.scroll[this.props.room] != null) {
       scroll = this.state.scroll[this.props.room];
     }
+    let className = "messages";
+    if (this.props.user.settings.bool.split) {
+      className += " split";
+    }
     return(
-      <div className="messages" id="message_window" ref={this.setRef}>
+      <div className={className} id="message_window" ref={this.setRef}>
         <Messages
           backlog={this.props.backlog}
           messages={this.props.messages}
@@ -694,7 +704,7 @@ let Messages = create({
             info={this.props.userinfo[event.sender]}
             id={event.sender}
             event={event}
-            source={event.sender == this.props.user ? "out" : "in"}
+            source={event.sender == this.props.user.user_id ? "out" : "in"}
             group="no"
             user={this.props.user}
           />
@@ -720,7 +730,7 @@ let Messages = create({
             break;
         }
         return (
-          <div className="line member" key={event.event_id}>
+          <div className="line member " key={event.event_id}>
             {event.sender} {action}
           </div>
         )
@@ -743,7 +753,7 @@ let Messages = create({
 let Message = create({
   displayName: "Message",
   render: function() {
-    let classArray = ["message", this.props.id, this.props.source].join(" ");
+    let classArray = ["message", this.props.id].join(" ");
     let time = new Date(this.props.event.origin_server_ts)
     let time_string = time.getHours().toString().padStart(2, "0") +
       ":" + time.getMinutes().toString().padStart(2, "0");
@@ -807,7 +817,7 @@ let Message = create({
     }
 
     return (
-      <div className="line">
+      <div className={"line " + this.props.source}>
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
