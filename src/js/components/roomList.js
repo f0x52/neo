@@ -259,7 +259,6 @@ let InviteEntry = create({
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson.error != undefined) {
-          this.setState({error: responseJson.error});
           console.error(responseJson);
         }
       })
@@ -283,7 +282,6 @@ let InviteEntry = create({
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson.error != undefined) {
-          this.setState({error: responseJson.error});
           console.error(responseJson);
         }
       })
