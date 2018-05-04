@@ -21,7 +21,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.03-dev4";
+let VERSION = "alpha0.03-dev5";
 
 let icon = {
   file: {
@@ -78,6 +78,9 @@ let App = create({
       bool: {
         split: false,
         bubbles: true
+      },
+      input: {
+        highlights: ""
       }
     };
     localStorage.setItem("version", VERSION);
@@ -773,10 +776,16 @@ let Message = create({
   displayName: "Message",
   render: function() {
     let classArray = ["message", this.props.id];
+    let highlights = this.props.user.settings.input.highlights.split(" ");
+    highlights.push(this.props.user.username);
     if (this.props.event.content.body != undefined) {
-      if (this.props.event.content.body.includes(this.props.user.username)) {
-        classArray.push("mention");
-      }
+      highlights.some((highlight) => {
+        if (this.props.event.content.body.includes(highlight)) {
+          classArray.push("mention");
+          return true;
+        }
+        return false;
+      })
     }
     if (!this.props.user.settings.bool.bubbles) {
       classArray.push("nobubble");
@@ -845,6 +854,23 @@ let Message = create({
       return null;
     }
 
+    let content = (
+      this.props.event.content.body.split('\n').map((item, key) => {
+        item = item.split(" ").map((str, key) => {
+          let returnVal = str + " ";
+          highlights.some((highlight) => {
+            if (item.includes(highlight)) {
+              returnVal = <span key={key} className="error">{str} </span>;
+              return true;
+            }
+            return false;
+          })
+          return returnVal;
+        });
+        return <span key={key}>{item}<br/></span>
+      })
+    );
+
     return (
       <div className={"line " + this.props.source}>
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
@@ -853,17 +879,9 @@ let Message = create({
             <b>{this.props.info.name}</b>
             {media}
             <div className="flex">
-              <p><Linkify component={MaybeAnImage}>{
-                this.props.event.content.body.split('\n').map((item, key) => {
-                  item = item.split(" ").map((str, key) => {
-                    if (str.includes(this.props.user.username)) {
-                      return <span key={key} className="error">{str} </span>
-                    }
-                    return str + " ";
-                  });
-                  return <span key={key}>{item}<br/></span>
-                })
-              }</Linkify></p>
+              <p><Linkify component={MaybeAnImage}>
+                  {content}
+              </Linkify></p>
               <span className="timestamp">{time_string}</span>
             </div>
           </div>

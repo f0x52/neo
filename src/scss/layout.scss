@@ -49,29 +49,35 @@ html, body {
   left: 20vw;
   width: 60vw;
 
-  .boolean {
+  .boolean, .inputs {
     display: inline-block;
     max-width: 80%;
   }
 
-  .bool {
+  .label {
+    margin: 5px;
+    flex: 1;
+  }
+
+  input {
+    border: 1px solid;
+  }
+
+  .bool, .input {
     height: 25px;
     line-height: 25px;
     display: inline-flex;
     width: 100%;
     margin: 10px;
 
-    .label {
-      margin: 5px;
-      flex: 1;
-    }
-
-    label {
+    label, .input input {
       line-height: normal;
       display: inline-block;
       vertical-align: middle;
     }
+  }
 
+  .bool {
     .switch {
       align-self: flex-end;
       position: relative;

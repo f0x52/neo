@@ -3,6 +3,7 @@ const create = require("create-react-class");
 const Promise = require('bluebird');
 const urllib = require('url');
 
+let debounce = require('debounce');
 let blank = require('../../assets/blank.jpg');
 let neo = require('../../assets/neo.png');
 
@@ -148,7 +149,6 @@ let Menu = create({
 
 let Settings = create({
   setting: function(cat, setting, value) {
-    console.log(`setting ${setting} to ${value}`);
     let user = this.props.user;
     user.settings[cat][setting] = value;
     this.props.setUser("user", user);
@@ -163,13 +163,25 @@ let Settings = create({
     let booleans = Object.keys(this.props.user.settings.bool).map((setting, key) => {
       return (
         <div className="bool" key={key}>
-          <label htmlFor={key} className="label">{setting.charAt(0).toUpperCase() + setting.slice(1)}</label>
+          <label htmlFor={"bool-" + key} className="label">{setting.charAt(0).toUpperCase() + setting.slice(1)}</label>
           <label className="switch">
-            <input id={key} type="checkbox" checked={this.props.user.settings.bool[setting]} onChange={(e) => {
+            <input id={"bool-" + key} type="checkbox" checked={this.props.user.settings.bool[setting]} onChange={(e) => {
               this.setting("bool", setting, e.target.checked);
             }}/>
             <span className="slider"/>
           </label>
+          <br/>
+        </div>
+      );
+    })
+
+    let inputs = Object.keys(this.props.user.settings.input).map((setting, key) => {
+      return (
+        <div className="input" key={key}>
+          <label htmlFor={"input-" + key} className="label">{setting.charAt(0).toUpperCase() + setting.slice(1)}</label>
+          <input id={"input-" + key} type="input" value={this.props.user.settings.input[setting]} onChange={(e) => {
+            debounce(this.setting("input", setting, e.target.value), 1000);
+          }}/>
           <br/>
         </div>
       );
@@ -181,6 +193,9 @@ let Settings = create({
         <h3>Chat Settings</h3>
         <div className="boolean">
           {booleans}
+        </div><br/>
+        <div className="inputs">
+          {inputs}
         </div>
       </div>
     );

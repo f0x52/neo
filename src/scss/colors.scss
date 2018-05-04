@@ -61,6 +61,13 @@ a:hover {
       box-shadow: 0 0 1px #2196F3;
     }
   }
+  .input {
+    input {
+      border-color: white;
+      background: transparent;
+      color: white;
+    }
+  }
 }
 
 .main {
