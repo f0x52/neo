@@ -885,7 +885,7 @@ let Message = create({
             <b>{this.props.info.name}</b>
             {media}
             <div className="flex">
-              <p><Linkify component={MaybeAnImage}>
+              <p><Linkify component={LinkInfo} properties={{user: this.props.user}}>
                   {content}
               </Linkify></p>
               <span className="timestamp">{time_string}</span>
@@ -897,30 +897,48 @@ let Message = create({
   }
 })
 
-let MaybeAnImage = create({
+let LinkInfo = create({
+  displayName: "LinkInfo",
   getInitialState: function() {
     return({
-      img: "no",
+      img: null,
       url: ""
     });
   },
 
   componentDidMount: function() {
-    let url = this.props.href.replace("http://", "https://");
+    let url = this.props.href;
     this.setState({
       url: url
     });
-    let img = new Image();
-    img.onload = () => this.setState({img: "yes"});
-    img.src = url;
+
+    let m_url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: "/_matrix/media/r0/preview_url/",
+      query: {
+        url: url,
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    fetch(m_url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) { //link is just an image
+          this.setState({
+            img: m_download(this.props.user.hs, responseJson["og:image"]),
+            h: responseJson["og:image:height"],
+            w: responseJson["og:image:width"]
+          })
+        }
+      })
   },
 
   render: function() {
-    if (this.state.img == "yes") {
+    if (this.state.img) {
       return(
         <span>
           <a href={this.props.href} target="_blank">{this.props.children}</a><br/>
-          <img className="link" src={this.state.url} />
+          <img className="link" src={this.state.img} height={this.state.h} width={this.state.w}/>
         </span>
       )
     }
