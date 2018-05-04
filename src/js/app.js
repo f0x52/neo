@@ -66,7 +66,7 @@ let App = create({
 
   componentDidMount: function() {
     if (this.state.user.access_token != undefined) {
-      this.sync();
+      this.initialSync();
     }
   },
 
@@ -89,7 +89,7 @@ let App = create({
     this.setState({
       user: json,
     });
-    this.sync();
+    this.initialSync();
   },
 
   get_userinfo: function(id, user) {
@@ -157,6 +157,82 @@ let App = create({
       user: {},
       logout: true
     })
+  },
+
+  initialSync: function() {
+    let url = urllib.format(Object.assign({}, this.state.user.hs, {
+      pathname: "/_matrix/client/r0/joined_rooms",
+      query: {
+        access_token: this.state.user.access_token
+      }
+    }));
+
+    fetch(url)
+      .then((response) => response.json())
+      .then((responseJson) => {
+        responseJson.joined_rooms.forEach((roomId) => {
+          url = urllib.format(Object.assign({}, this.state.user.hs, {
+            pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
+            query: {
+              limit: 80,
+              dir: "b",
+              access_token: this.state.user.access_token
+            }
+          }));
+
+          fetch(url)
+            .then((response) => response.json())
+            .then((responseJson) => {
+              let messages = this.state.messages;
+              let localRooms = this.state.rooms;
+              let remoteRoom = responseJson.chunk;
+
+              let combinedMessages = this.addMessages(roomId, remoteRoom);
+              messages[roomId] = combinedMessages;
+
+              messages[roomId] = combinedMessages;
+
+              function findLast(array, predicate) {
+                return array.slice().reverse().find(predicate);
+              }
+
+              if (localRooms[roomId] == null) {
+                localRooms[roomId] = {};
+              }
+
+              localRooms[roomId].lastMessage = findLast(combinedMessages, (message) => {
+                return (message.content.body != null);
+              });
+
+              localRooms[roomId].lastMessage = defaultValue(
+                localRooms[roomId].lastMessage,
+                combinedMessages[combinedMessages.length - 1]
+              );
+
+              if (localRooms[roomId].lastMessage == undefined) {
+                console.log(responseJson, roomId);
+                localRooms[roomId].lastMessage = {
+                  origin_server_ts: 0,
+                  content: {
+                    body: ""
+                  }
+                }
+              }
+
+              localRooms[roomId].notif = {unread: 0, highlight: 0};
+
+              if (localRooms[roomId] == null) {
+                localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
+              }
+
+              this.setState({
+                messages: messages,
+                rooms: localRooms,
+              });
+            })
+        });
+        this.sync();
+      })
   },
 
   sync: function() {
@@ -302,10 +378,6 @@ let App = create({
   },
 
   getBacklog: function(roomId) {
-    if (this.state.backlog == 1) {
-      return;
-    }
-    this.setState({backlog: 1});
     let messages = this.state.messages;
     let rooms = this.state.rooms;
     let from = rooms[roomId].prev_batch;
@@ -327,16 +399,9 @@ let App = create({
         messages[roomId] = combinedMessages;
 
         rooms[roomId].prev_batch = responseJson.end;
-
-        //persistLocalStorage({
-        //  messages: messages,
-        //  rooms: rooms
-        //});
-
         this.setState({
           messages: messages,
           rooms: rooms,
-          backlog: 0
         });
       })
   },
@@ -774,6 +839,18 @@ let Messages = create({
 
 let Message = create({
   displayName: "Message",
+  getInitialState: function() {
+    return({
+      ref: null
+    });
+  },
+
+  setRef: function(element) {
+    if (element != null) {
+      this.setState({ref: element});
+    }
+  },
+
   render: function() {
     let classArray = ["message", this.props.id];
     let highlights = this.props.user.settings.input.highlights.split(" ");
@@ -805,13 +882,13 @@ let Message = create({
       classArray += " media";
       if (this.props.event.content.info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
-        media = image(url, url);
+        media = image(this.state.ref, url, url);
       } else if (this.props.event.content.info.thumbnail_info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
         if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
-          media = image(url, url, this.props.event.content.info.h, this.props.event.content.info.w)
+          media = image(this.state.ref, url, url, this.props.event.content.info.h, this.props.event.content.info.w)
         } else {
-          media = image(url, url);
+          media = image(this.state.ref, url, url);
         }
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
@@ -821,6 +898,7 @@ let Message = create({
         }
 
         media = image(
+          this.state.ref,
           m_download(this.props.user.hs, this.props.event.content.url),
           m_download(this.props.user.hs, media_url),
           this.props.event.content.info.thumbnail_info.h,
@@ -878,7 +956,7 @@ let Message = create({
     );
 
     return (
-      <div className={"line " + this.props.source}>
+      <div className={"line " + this.props.source} ref={this.setRef}>
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
@@ -939,7 +1017,7 @@ let LinkInfo = create({
       return(
         <span>
           <a href={this.props.href} target="_blank">{this.props.children}</a><br/>
-          <img className="link" src={this.state.img} height={this.state.h} width={this.state.w}/>
+          <img className="link" src={this.state.img} style={{minHeight: this.state.h, minWidth: this.state.w}}/>
         </span>
       )
     }
@@ -978,14 +1056,33 @@ function observe(element, event, handler) {
   element.addEventListener(event, handler, false)
 }
 
-function image(src, thumb, h, w) {
+function image(container, src, thumb, h, w) {
+  if (container == null) {
+    return null;
+  }
+
+  let newHeight;
+  let newWidth;
+
+  let maxHeight = 600;
+  let maxWidth = container.clientWidth - 70;
+
+  let hRatio = maxHeight/h;
+  let wRatio = maxWidth/w;
+
+  if (hRatio <= wRatio) {
+    newHeight = maxHeight;
+  }
+  if (hRatio >= wRatio) {
+    newWidth = maxWidth;
+  }
+
   return(
     <div>
       <a target="_blank" href={src}>
         <img
           src={thumb}
-          height={h}
-          width={w}
+          style={{maxHeight: newHeight, newWidth: newWidth}}
         />
       </a>
     </div>
