@@ -859,21 +859,21 @@ let Message = create({
 
     let content = (
       this.props.event.content.body.split('\n').map((item, key) => {
-        item = item.split(" ").map((str, key) => {
+        let items = item.split(" ").map((str, key) => {
           let returnVal = str + " ";
           highlights.some((highlight) => {
             if (highlight == "") {
               return false;
             }
-            if (item.includes(highlight)) {
-              returnVal = <span key={key} className="error">{str} </span>;
+            if (str.includes(highlight)) {
+              returnVal = <span key={key} className="highlight">{str} </span>;
               return true;
             }
             return false;
           })
           return returnVal;
         });
-        return <span key={key}>{item}<br/></span>
+        return <span key={key}>{items}<br/></span>
       })
     );
 
@@ -923,7 +923,8 @@ let LinkInfo = create({
     fetch(m_url)
       .then(response => response.json())
       .then(responseJson => {
-        if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) { //link is just an image
+        if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) {
+          //link is just an image
           this.setState({
             img: m_download(this.props.user.hs, responseJson["og:image"]),
             h: responseJson["og:image:height"],
