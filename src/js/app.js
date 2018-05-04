@@ -82,6 +82,7 @@ let App = create({
     };
     localStorage.setItem("version", VERSION);
     localStorage.setItem("user", JSON.stringify(json));
+    localStorage.setItem("invites", "{}");
     this.setState({
       user: json,
     });
@@ -208,6 +209,16 @@ let App = create({
             localRooms[roomId].lastMessage,
             combinedMessages[combinedMessages.length - 1]
           );
+
+          if (localRooms[roomId].lastMessage == undefined) {
+            console.log(responseJson, roomId);
+            localRooms[roomId].lastMessage = {
+              origin_server_ts: 0,
+              content: {
+                body: ""
+              }
+            }
+          }
 
           let unread = defaultValue(
             remoteRoom.unread_notifications.notification_count,
@@ -762,8 +773,10 @@ let Message = create({
   displayName: "Message",
   render: function() {
     let classArray = ["message", this.props.id];
-    if (this.props.event.content.body.includes(this.props.user.username)) {
-      classArray.push("mention");
+    if (this.props.event.content.body != undefined) {
+      if (this.props.event.content.body.includes(this.props.user.username)) {
+        classArray.push("mention");
+      }
     }
     if (!this.props.user.settings.bool.bubbles) {
       classArray.push("nobubble");

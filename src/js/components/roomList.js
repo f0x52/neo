@@ -163,9 +163,9 @@ let Settings = create({
     let booleans = Object.keys(this.props.user.settings.bool).map((setting, key) => {
       return (
         <div className="bool" key={key}>
-          <span>{setting.charAt(0).toUpperCase() + setting.slice(1)}</span>
+          <label htmlFor={key} className="label">{setting.charAt(0).toUpperCase() + setting.slice(1)}</label>
           <label className="switch">
-            <input type="checkbox" checked={this.props.user.settings.bool[setting]} onChange={(e) => {
+            <input id={key} type="checkbox" checked={this.props.user.settings.bool[setting]} onChange={(e) => {
               this.setting("bool", setting, e.target.checked);
             }}/>
             <span className="slider"/>
@@ -246,6 +246,9 @@ let Invites = create({
   displayName: "Invites",
   render: function() {
     let invites = this.props.invites;
+    if (invites == null) {
+      return null;
+    }
     let inviteKeys = Object.keys(invites);
     if (inviteKeys.length == 0) {
       return null;
