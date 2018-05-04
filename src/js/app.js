@@ -780,6 +780,9 @@ let Message = create({
     highlights.push(this.props.user.username);
     if (this.props.event.content.body != undefined) {
       highlights.some((highlight) => {
+        if (highlight == "") {
+          return false;
+        }
         if (this.props.event.content.body.includes(highlight)) {
           classArray.push("mention");
           return true;
@@ -859,6 +862,9 @@ let Message = create({
         item = item.split(" ").map((str, key) => {
           let returnVal = str + " ";
           highlights.some((highlight) => {
+            if (highlight == "") {
+              return false;
+            }
             if (item.includes(highlight)) {
               returnVal = <span key={key} className="error">{str} </span>;
               return true;
