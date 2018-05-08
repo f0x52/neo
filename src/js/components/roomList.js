@@ -130,7 +130,7 @@ let Menu = create({
         <div style={style} id="menu">
           <div id="user">
             <img src={this.props.userinfo[this.props.user.user_id].img}/>
-            <span>{this.props.userinfo[this.props.user.user_id].name}</span>
+            <span>{this.props.userinfo[this.props.user.user_id].display_name}</span>
           </div>
           {/*<div>New Room</div>*/}
           <div onClick={this.join}>Join Room</div>
@@ -346,7 +346,7 @@ let InviteEntry = create({
   render: function() {
     let msg = "";
     if (this.props.invite.invitedBy != null && this.props.userinfo[this.props.invite.invitedBy] != undefined) {
-      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you</React.Fragment>;
+      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].display_name}</b> invited you</React.Fragment>;
     }
     return(
       <div
@@ -441,6 +441,9 @@ let RoomEntry = create({
   },
 
   render: function() {
+    if (this.props.rooms[this.props.id].users.length == 0) {
+      return null;
+    }
     let time = new Date(this.props.lastEvent.origin_server_ts);
     let now = new Date();
     let time_string;
@@ -455,7 +458,7 @@ let RoomEntry = create({
     if (this.props.userinfo[this.props.lastEvent.sender] == undefined) {
       this.props.get_userinfo(this.props.lastEvent.sender);
     }
-    let user = this.props.userinfo[this.props.lastEvent.sender].name;
+    let user = this.props.userinfo[this.props.lastEvent.sender].display_name;
     let unread_count = this.props.notif.unread;
     if (this.props.notif.highlight > 0) {
       unread_count = "@";

@@ -23,7 +23,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.03-dev5";
+let VERSION = "alpha0.03-dev6";
 
 let icon = {
   file: {
@@ -100,7 +100,7 @@ let App = create({
       userState = user;
     }
     let userinfo = this.state.userinfo;
-    userinfo[id] = {name: id, img: blank};
+    userinfo[id] = {display_name: id, img: blank};
     this.setState({userinfo: userinfo});
 
     let url = urllib.format(Object.assign({}, userState.hs, {
@@ -134,13 +134,7 @@ let App = create({
         if(responseJson.errcode == undefined &&
           responseJson.avatar_url != undefined) {
           userinfo = this.state.userinfo;
-          userinfo[id].img = urllib.format(Object.assign({}, userState.hs, {
-            pathname: `/_matrix/media/r0/thumbnail/${responseJson.avatar_url.substring(6)}`,
-            query: {
-              width: 64,
-              height: 64
-            }
-          }));
+          userinfo[id].img = m_thumbnail(userState.hs, responseJson.avatar_url, 64, 64);
           this.setState({userinfo: userinfo});
           localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
         }
@@ -171,6 +165,10 @@ let App = create({
 
     fetch(url)
       .then((response) => response.json())
+      .catch((error) => {
+        console.error('Error:', error);
+        this.initialSync(); //retry
+      })
       .then((responseJson) => {
         responseJson.joined_rooms.forEach((roomId) => {
           url = urllib.format(Object.assign({}, this.state.user.hs, {
@@ -222,6 +220,7 @@ let App = create({
               }
 
               localRooms[roomId].notif = {unread: 0, highlight: 0};
+              localRooms[roomId].users = [];
 
               if (localRooms[roomId] == null) {
                 localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
@@ -231,6 +230,43 @@ let App = create({
                 messages: messages,
                 rooms: localRooms,
               });
+              url = urllib.format(Object.assign({}, this.state.user.hs, {
+                pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
+                query: {
+                  access_token: this.state.user.access_token
+                }
+              }));
+
+              fetch(url)
+                .then((response) => response.json())
+                .then((responseJson) => {
+                  let remoteUsers = responseJson.joined;
+                  let localRooms = this.state.rooms;
+                  if (localRooms[roomId] == null) {
+                    localRooms[roomId] = {};
+                  }
+
+                  localRooms[roomId].userList = remoteUsers;
+                  localRooms[roomId].users = [];
+
+                  Object.keys(remoteUsers).forEach((userId) => {
+                    let remoteUser = remoteUsers[userId];
+                    localRooms[roomId].users.push(userId);
+
+                    if (remoteUser.avatar_url == null) {
+                      remoteUser.img = blank;
+                    } else {
+                      remoteUser.img = m_thumbnail(this.state.user.hs, remoteUser.avatar_url, 64, 64);
+                    }
+                  });
+                  let users = this.state.userinfo;
+                  let combinedUsers = Object.assign({}, users, remoteUsers);
+
+                  this.setState({
+                    userinfo: combinedUsers,
+                    rooms: localRooms
+                  });
+                });
             });
         });
         this.sync();
@@ -472,6 +508,7 @@ let App = create({
             />
             <Send
               room={this.state.room}
+              rooms={this.state.rooms}
               user={this.state.user}
             />
             <img src={icon.send.dark} id="send" className="dark"/>
@@ -498,16 +535,24 @@ let Send = create({
   },
 
   shift_enter: function(event) {
+    setTimeout(this.completion, 1);
     if (event.keyCode == 13 && !event.shiftKey) {
       event.preventDefault();
       this.send();
     }
   },
 
+  completion: function() {
+    let textarea = document.getElementById('text');
+    if (textarea.value != "") {
+      debounce(getCompletion(this.props.rooms[this.props.room].users, textarea.value), 50);
+    }
+  },
+
   resize_textarea: function() {
     let textarea = document.getElementById('text');
     textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight+'px';
+    //textarea.style.height = textarea.scrollHeight+'px';
   },
 
   resize_textarea_delayed: function() {
@@ -735,7 +780,7 @@ let Messages = create({
     });
   },
 
-  componentDidUpdate: function(prevProps) {
+  componentDidUpdate: function() {
     let scrollState = this.props.getScroll();
 
     if (this.props.scroll.scrollTop == null) {
@@ -964,7 +1009,7 @@ let Message = create({
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
-            <b>{this.props.info.name}</b>
+            <b>{this.props.info.display_name}</b>
             {media}
             <div className="flex">
               <p>
@@ -1032,15 +1077,15 @@ let LinkInfo = create({
   }
 });
 
-//function m_thumbnail(hs, mxc, w, h) {
-//  return urllib.format(Object.assign({}, hs, {
-//    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
-//    query: {
-//      width: w,
-//      height: h
-//    }
-//  }));
-//}
+function m_thumbnail(hs, mxc, w, h) {
+  return urllib.format(Object.assign({}, hs, {
+    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
+    query: {
+      width: w,
+      height: h
+    }
+  }));
+}
 
 function m_download(hs, mxc) {
   return urllib.format(Object.assign({}, hs, {
@@ -1091,6 +1136,17 @@ function image(container, src, thumb, h, w) {
       </a>
     </div>
   );
+}
+
+function getCompletion(list, str) {
+  let completionList = [];
+  list.forEach((completion) => {
+    if (completion.includes(str)) {
+      completionList.push(completion);
+    }
+  });
+  console.log(completionList);
+  return(completionList);
 }
 
 ReactDOM.render(
