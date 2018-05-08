@@ -1,9 +1,8 @@
-'use strict'
+'use strict';
 
 const React = require('react');
 const ReactDOM = require('react-dom');
-//import Linkify from 'react-linkify';
-require('react-linkify');
+const Linkify = require('react-linkify').default;
 //const Promise = require('bluebird');
 
 require('../scss/layout.scss');
@@ -956,6 +955,10 @@ let Message = create({
       })
     );
 
+    let link = <Linkify component={LinkInfo} properties={{user: this.props.user}}>
+      {content}
+    </Linkify>;
+
     return (
       <div className={"line " + this.props.source} ref={this.setRef}>
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
@@ -964,9 +967,9 @@ let Message = create({
             <b>{this.props.info.name}</b>
             {media}
             <div className="flex">
-              <p><Linkify component={LinkInfo} properties={{user: this.props.user}}>
-                {content}
-              </Linkify></p>
+              <p>
+                {link}
+              </p>
               <span className="timestamp">{time_string}</span>
             </div>
           </div>
@@ -1029,15 +1032,15 @@ let LinkInfo = create({
   }
 });
 
-function m_thumbnail(hs, mxc, w, h) {
-  return urllib.format(Object.assign({}, hs, {
-    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
-    query: {
-      width: w,
-      height: h
-    }
-  }));
-}
+//function m_thumbnail(hs, mxc, w, h) {
+//  return urllib.format(Object.assign({}, hs, {
+//    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
+//    query: {
+//      width: w,
+//      height: h
+//    }
+//  }));
+//}
 
 function m_download(hs, mxc) {
   return urllib.format(Object.assign({}, hs, {

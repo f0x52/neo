@@ -1,3 +1,5 @@
+'use strict';
+
 const React = require("react");
 const create = require("create-react-class");
 const Promise = require('bluebird');
@@ -5,7 +7,7 @@ const urllib = require('url');
 
 let debounce = require('debounce');
 let blank = require('../../assets/blank.jpg');
-let neo = require('../../assets/neo.png');
+//let neo = require('../../assets/neo.png');
 
 let List = create({
   displayName: "List",
@@ -84,7 +86,7 @@ let List = create({
       </React.Fragment>
     );
   },
-})
+});
 
 let Menu = create({
   getInitialState: function() {
@@ -115,7 +117,6 @@ let Menu = create({
 
   render: function() {
     let style={};
-    let content = null;
 
     if (this.props.menu) {
       style = {width: "20vw"};
@@ -145,7 +146,7 @@ let Menu = create({
       </React.Fragment>
     );
   }
-})
+});
 
 let Settings = create({
   setting: function(cat, setting, value) {
@@ -157,7 +158,7 @@ let Settings = create({
 
   render: function() {
     if (!this.props.settings) {
-      return null
+      return null;
     }
 
     let booleans = Object.keys(this.props.user.settings.bool).map((setting, key) => {
@@ -173,7 +174,7 @@ let Settings = create({
           <br/>
         </div>
       );
-    })
+    });
 
     let inputs = Object.keys(this.props.user.settings.input).map((setting, key) => {
       return (
@@ -185,7 +186,7 @@ let Settings = create({
           <br/>
         </div>
       );
-    })
+    });
 
     return (
       <div id="settings">
@@ -200,7 +201,7 @@ let Settings = create({
       </div>
     );
   }
-})
+});
 
 let Join = create({
   getInitialState: function() {
@@ -228,12 +229,12 @@ let Join = create({
         if (responseJson.error != undefined) {
           this.setState({error: responseJson.error});
         }
-      })
+      });
   },
 
   setRef: function(element) {
     if (element != null) {
-      element.addEventListener("submit", this.join)
+      element.addEventListener("submit", this.join);
     }
   },
 
@@ -255,7 +256,7 @@ let Join = create({
     }
     return null;
   }
-})
+});
 
 let Invites = create({
   displayName: "Invites",
@@ -285,7 +286,7 @@ let Invites = create({
       </div>
     );
   }
-})
+});
 
 let InviteEntry = create({
   displayName: "InviteEntry",
@@ -298,7 +299,7 @@ let InviteEntry = create({
 
   accept: function() {
     let id = this.props.roomId;
-    console.log("accepting ", id)
+    console.log("accepting ", id);
     let url = urllib.format(Object.assign({}, this.props.user.hs, {
       pathname: `/_matrix/client/r0/rooms/${id}/join`,
       query: {
@@ -314,13 +315,13 @@ let InviteEntry = create({
         if (responseJson.error != undefined) {
           console.error(responseJson);
         }
-      })
+      });
     this.props.remove();
   },
 
   decline: function() {
     let id = this.props.roomId;
-    console.log("declining ", id)
+    console.log("declining ", id);
 
     let url = urllib.format(Object.assign({}, this.props.user.hs, {
       pathname: `/_matrix/client/r0/rooms/${id}/leave`,
@@ -337,7 +338,7 @@ let InviteEntry = create({
         if (responseJson.error != undefined) {
           console.error(responseJson);
         }
-      })
+      });
     this.props.remove();
   },
 
@@ -345,7 +346,7 @@ let InviteEntry = create({
   render: function() {
     let msg = "";
     if (this.props.invite.invitedBy != null && this.props.userinfo[this.props.invite.invitedBy] != undefined) {
-      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you</React.Fragment>
+      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you</React.Fragment>;
     }
     return(
       <div
@@ -354,7 +355,7 @@ let InviteEntry = create({
           height="70px"
           width="70px"
           src={this.props.invite.avatar}
-          onError={(e)=>{e.target.src = blank}}
+          onError={(e)=>{e.target.src = blank;}}
         />
         <span id="name">
           {this.props.invite.name}
@@ -369,7 +370,7 @@ let InviteEntry = create({
       </div>
     );
   }
-})
+});
 
 let RoomEntry = create({
   displayName: "RoomEntry",
@@ -394,7 +395,7 @@ let RoomEntry = create({
         if (responseJson.name != undefined) {
           this.setState({name: responseJson.name});
         }
-      })
+      });
 
     url = urllib.format(Object.assign({}, this.props.user.hs, {
       pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.avatar`,
@@ -414,11 +415,11 @@ let RoomEntry = create({
             }))
           });
         }
-      })
+      });
   },
 
   switchRoom: function() {
-    this.props.setParentState("room", this.props.id)
+    this.props.setParentState("room", this.props.id);
     let user = this.props.user;
 
     let url = urllib.format(Object.assign({}, user.hs, {
@@ -426,14 +427,14 @@ let RoomEntry = create({
       query: {
         access_token: user.access_token
       }
-    }))
+    }));
 
     fetch(url, {
       headers: {
         'content-type': 'application/json'
       },
       method: 'POST',
-    })
+    });
     let rooms = this.props.rooms;
     rooms[this.props.id].notif = {unread: 0, highlight: 0};
     this.props.setParentState("rooms", rooms);
@@ -468,7 +469,7 @@ let RoomEntry = create({
           height="70px"
           width="70px"
           src={this.state.img}
-          onError={(e)=>{e.target.src = blank}}
+          onError={(e)=>{e.target.src = blank;}}
         />
         <span id="name">
           {this.state.name}
@@ -487,19 +488,19 @@ let RoomEntry = create({
       </div>
     );
   }
-})
+});
 
 let darken = function() {
   // Darken the whole screen, except dialog, resolve on click
-  return new Promise(function(resolve, reject) {
+  return new Promise(function(resolve) {
     let div = document.getElementsByClassName("darken")[0];
     div.onclick = () => {
       let div = document.getElementsByClassName("darken")[0];
-      div = Object.assign(div.style, {zIndex: "-1", backgroundColor: "hsla(0, 0%, 0%, 0)"});
+      div.style = Object.assign(div.style, {zIndex: "-1", backgroundColor: "hsla(0, 0%, 0%, 0)"});
       resolve();
     };
     div = Object.assign(div.style, {zIndex: "50", backgroundColor: "hsla(0, 0%, 0%, 0.5)"});
   });
-}
+};
 
 module.exports = List;
