@@ -1,7 +1,10 @@
+'use strict'
+
 const React = require('react');
 const ReactDOM = require('react-dom');
-import Linkify from 'react-linkify';
-const Promise = require('bluebird');
+//import Linkify from 'react-linkify';
+require('react-linkify');
+//const Promise = require('bluebird');
 
 require('../scss/layout.scss');
 
@@ -11,7 +14,7 @@ let create = require('create-react-class');
 let urllib = require('url');
 let debounce = require('debounce');
 
-let persistLocalStorage = require('./lib/persist-local-storage');
+//let persistLocalStorage = require('./lib/persist-local-storage');
 
 // Components
 let File = require('./components/fileUpload');
@@ -35,7 +38,7 @@ let icon = {
   hamburger: {
     dark: require('../assets/dark/hamburger.svg')
   }
-}
+};
 
 let App = create({
   displayName: "App",
@@ -117,7 +120,7 @@ let App = create({
           this.setState({userinfo: userinfo});
           localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
         }
-      })
+      });
 
     url = urllib.format(Object.assign({}, userState.hs, {
       pathname: `/_matrix/client/r0/profile/${id}/avatar_url`,
@@ -138,11 +141,11 @@ let App = create({
               width: 64,
               height: 64
             }
-          }))
+          }));
           this.setState({userinfo: userinfo});
           localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
         }
-      })
+      });
   },
 
   setStateFromChild: function(prop, value) {
@@ -156,7 +159,7 @@ let App = create({
     this.setState({
       user: {},
       logout: true
-    })
+    });
   },
 
   initialSync: function() {
@@ -216,7 +219,7 @@ let App = create({
                   content: {
                     body: ""
                   }
-                }
+                };
               }
 
               localRooms[roomId].notif = {unread: 0, highlight: 0};
@@ -229,21 +232,20 @@ let App = create({
                 messages: messages,
                 rooms: localRooms,
               });
-            })
+            });
         });
         this.sync();
-      })
+      });
   },
 
   sync: function() {
-    this.setState({loading: 1});
     let url = Object.assign({}, this.state.user.hs, {
       pathname: "/_matrix/client/r0/sync",
       query: {
         timeout: 30000,
         access_token: this.state.user.access_token
       }
-    })
+    });
 
     if(this.state.user.next_batch != undefined) {
       url.query.since = this.state.user.next_batch;
@@ -296,7 +298,7 @@ let App = create({
               content: {
                 body: ""
               }
-            }
+            };
           }
 
           let unread = defaultValue(
@@ -333,7 +335,7 @@ let App = create({
                 name = event.content.name;
                 break;
               case "m.room.avatar":
-                avatar = m_download(this.state.user.hs, event.content.url)
+                avatar = m_download(this.state.user.hs, event.content.url);
                 break;
               case "m.room.member":
                 if (event.content.membership == "invite") {
@@ -341,7 +343,7 @@ let App = create({
                 }
                 break;
             }
-          })
+          });
           localInvites[roomId] = {name: name, avatar: avatar, invitedBy: invitedBy};
         });
         //persistLocalStorage({
@@ -351,7 +353,7 @@ let App = create({
 
         let user = Object.assign(this.state.user, {
           next_batch: responseJson.next_batch
-        })
+        });
 
         localStorage.setItem("invites", JSON.stringify(localInvites));
 
@@ -360,12 +362,11 @@ let App = create({
           user: user,
           rooms: localRooms,
           invites: localInvites,
-          loading: 0
         });
         if (!this.state.logout) {
           this.sync();
         }
-    });
+      });
   },
 
   addMessages: function (roomId, messages) {
@@ -403,7 +404,7 @@ let App = create({
           messages: messages,
           rooms: rooms,
         });
-      })
+      });
   },
 
   removeInvite: function(roomId) {
@@ -422,7 +423,7 @@ let App = create({
   render: function() {
     let loading;
     if (this.state.loading) {
-      loading = <img className="loading" src={loadingGif} alt="loading"/>
+      loading = <img className="loading" src={loadingGif} alt="loading"/>;
     }
     if (!this.state.user.access_token) {
       return (
@@ -481,12 +482,12 @@ let App = create({
       </div>
     );
   }
-})
+});
 
 let Send = create({
   displayName: "Send",
   componentDidMount: function() {
-    let textarea = document.getElementById('text')
+    let textarea = document.getElementById('text');
     observe(textarea, 'change',  this.resize_textarea);
     observe(textarea, 'cut',     this.resize_textarea_delayed);
     observe(textarea, 'paste',   this.resize_textarea_delayed);
@@ -500,14 +501,14 @@ let Send = create({
   shift_enter: function(event) {
     if (event.keyCode == 13 && !event.shiftKey) {
       event.preventDefault();
-      this.send()
+      this.send();
     }
   },
 
   resize_textarea: function() {
-    let textarea = document.getElementById('text')
-    textarea.style.height = 'auto'
-    textarea.style.height = text.scrollHeight+'px'
+    let textarea = document.getElementById('text');
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight+'px';
   },
 
   resize_textarea_delayed: function() {
@@ -515,31 +516,31 @@ let Send = create({
   },
 
   send: function() {
-    let textarea = document.getElementById('text')
+    let textarea = document.getElementById('text');
     if(textarea.value != "") {
-        let msg = textarea.value.replace(/^\s+|\s+$/g, '')
-        textarea.value = ""
-        let unixtime = Date.now()
+      let msg = textarea.value.replace(/^\s+|\s+$/g, '');
+      textarea.value = "";
+      let unixtime = Date.now();
 
-        let url = urllib.format(Object.assign({}, this.props.user.hs, {
-          pathname: `/_matrix/client/r0/rooms/${this.props.room}/send/m.room.message/${unixtime}`,
-          query: {
-            access_token: this.props.user.access_token
-          }
-        }));
-
-        let body = {
-          "msgtype": "m.text",
-          "body": msg,
+      let url = urllib.format(Object.assign({}, this.props.user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${this.props.room}/send/m.room.message/${unixtime}`,
+        query: {
+          access_token: this.props.user.access_token
         }
+      }));
 
-        fetch(url, {
-          method: 'PUT',
-          body: JSON.stringify(body),
-          headers: new Headers({
-            'Content-Type': 'application/json'
-          })
-        }).then(res => res.json())
+      let body = {
+        "msgtype": "m.text",
+        "body": msg,
+      };
+
+      fetch(url, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      }).then(res => res.json())
         .catch(error => console.error('Error:', error))
         .then(response => console.log('Success:', response));
     }
@@ -557,7 +558,7 @@ let Send = create({
       </textarea>
     );
   }
-})
+});
 
 let Login = create({
   displayName: "Login",
@@ -573,20 +574,20 @@ let Login = create({
   render: function() {
     return (
       <center>
-          <img id="header" src={neo}/>
-          <form id="login">
-            <input id="user" type="text" placeholder="username"
-              value={this.state.user} onChange={this.handleUser}/><br/>
-            <input id="pass" type="password" placeholder="password"
-              value={this.state.pass} onChange={this.handlePass}/><br/>
-            <input id="hs" type="text" placeholder="homeserver"
-              value={this.state.homeserver} onChange={this.handleHs}/><br/>
-            <button type="submit" onClick={this.login}>Log in</button>
-          </form>
-          {this.state.json.error &&
-            <span className="error">{this.state.json.error}</span>
-          }
-        </center>
+        <img id="header" src={neo}/>
+        <form id="login">
+          <input id="user" type="text" placeholder="username"
+            value={this.state.user} onChange={this.handleUser}/><br/>
+          <input id="pass" type="password" placeholder="password"
+            value={this.state.pass} onChange={this.handlePass}/><br/>
+          <input id="hs" type="text" placeholder="homeserver"
+            value={this.state.homeserver} onChange={this.handleHs}/><br/>
+          <button type="submit" onClick={this.login}>Log in</button>
+        </form>
+        {this.state.json.error &&
+          <span className="error">{this.state.json.error}</span>
+        }
+      </center>
     );
   },
 
@@ -615,7 +616,7 @@ let Login = create({
 
     let url = urllib.format(Object.assign(homeserver, {
       pathname: "/_matrix/client/r0/login"
-    }))
+    }));
 
     fetch(url, {
       body: JSON.stringify(data),
@@ -624,10 +625,10 @@ let Login = create({
       },
       method: 'POST',
     }).then((response) => {
-        if (!response.ok) {
-          throw Error(response.statusText);
-        }
-        return response.json()
+      if (!response.ok) {
+        throw Error(response.statusText);
+      }
+      return response.json();
     }).then((responseJson) => {
       this.setState({json: responseJson});
       if(responseJson.access_token != undefined) {
@@ -640,7 +641,7 @@ let Login = create({
       this.props.setParentState("loading", 0);
     });
   }
-})
+});
 
 let Room = create({
   displayName: "Room",
@@ -658,12 +659,12 @@ let Room = create({
     }
   },
 
-  onScroll: function(event) {
+  onScroll: function() {
     this.setState({
       scroll: Object.assign({}, this.state.scroll, {
         [this.props.room]: this.getScroll()
       })
-    })
+    });
   },
 
   getScroll: function() {
@@ -724,7 +725,7 @@ let Room = create({
       </div>
     );
   }
-})
+});
 
 let Messages = create({
   displayName: "Messages",
@@ -732,10 +733,10 @@ let Messages = create({
     return({
       userinfo: [],
       shouldGoToBottom: 0
-    })
+    });
   },
 
-  componentDidUpdate: function(prevProps, prevState) {
+  componentDidUpdate: function(prevProps) {
     let scrollState = this.props.getScroll();
 
     if (this.props.scroll.scrollTop == null) {
@@ -787,7 +788,7 @@ let Messages = create({
             group="no"
             user={this.props.user}
           />
-        )
+        );
       } else if (event.type == "m.room.member") {
         let action = "";
         let reason = "";
@@ -820,8 +821,9 @@ let Messages = create({
           <div className="line member" key={event.event_id}>
             {event.sender} {action} {reason}
           </div>
-        )
+        );
       }
+      return null;
     }
     );
     return (
@@ -832,10 +834,9 @@ let Messages = create({
         {this.props.room}
         {messages}
       </div>
-    )
+    );
   }
-
-})
+});
 
 let Message = create({
   displayName: "Message",
@@ -865,14 +866,14 @@ let Message = create({
           return true;
         }
         return false;
-      })
+      });
     }
     if (!this.props.user.settings.bool.bubbles) {
       classArray.push("nobubble");
     }
     classArray = classArray.join(" ");
 
-    let time = new Date(this.props.event.origin_server_ts)
+    let time = new Date(this.props.event.origin_server_ts);
     let time_string = time.getHours().toString().padStart(2, "0") +
       ":" + time.getMinutes().toString().padStart(2, "0");
 
@@ -886,7 +887,7 @@ let Message = create({
       } else if (this.props.event.content.info.thumbnail_info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
         if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
-          media = image(this.state.ref, url, url, this.props.event.content.info.h, this.props.event.content.info.w)
+          media = image(this.state.ref, url, url, this.props.event.content.info.h, this.props.event.content.info.w);
         } else {
           media = image(this.state.ref, url, url);
         }
@@ -906,16 +907,16 @@ let Message = create({
         );
       }
     } else if (this.props.event.content.msgtype == "m.video") {
-      let thumb = ""
+      let thumb = "";
       if (this.props.event.content.info != undefined &&
         this.props.event.content.info.thumbnail_url != undefined) {
         thumb = m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url);
       }
       media = <video
-          src={m_download(this.props.user.hs, this.props.event.content.url)}
-          poster={thumb}
-          controls
-        ></video>;
+        src={m_download(this.props.user.hs, this.props.event.content.url)}
+        poster={thumb}
+        controls
+      ></video>;
       
     } else if (this.props.event.content.msgtype == "m.file") {
       media = <a
@@ -924,7 +925,7 @@ let Message = create({
         href={m_download(this.props.user.hs, this.props.event.content.url)}
       >
         <span>file download</span>
-      </a>
+      </a>;
     } else {
       if (!this.props.event.content.msgtype == "m.text") {
         console.log(this.props.event);
@@ -948,23 +949,23 @@ let Message = create({
               return true;
             }
             return false;
-          })
+          });
           return returnVal;
         });
-        return <span key={key}>{items}<br/></span>
+        return <span key={key}>{items}<br/></span>;
       })
     );
 
     return (
       <div className={"line " + this.props.source} ref={this.setRef}>
-        <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank}}/>
+        <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
             <b>{this.props.info.name}</b>
             {media}
             <div className="flex">
               <p><Linkify component={LinkInfo} properties={{user: this.props.user}}>
-                  {content}
+                {content}
               </Linkify></p>
               <span className="timestamp">{time_string}</span>
             </div>
@@ -973,7 +974,7 @@ let Message = create({
       </div>
     );
   }
-})
+});
 
 let LinkInfo = create({
   displayName: "LinkInfo",
@@ -1007,9 +1008,9 @@ let LinkInfo = create({
             img: m_download(this.props.user.hs, responseJson["og:image"]),
             h: responseJson["og:image:height"],
             w: responseJson["og:image:width"]
-          })
+          });
         }
-      })
+      });
   },
 
   render: function() {
@@ -1019,14 +1020,14 @@ let LinkInfo = create({
           <a href={this.props.href} target="_blank">{this.props.children}</a><br/>
           <img className="link" src={this.state.img} style={{minHeight: this.state.h, minWidth: this.state.w}}/>
         </span>
-      )
+      );
     }
 
     return (
       <a href={this.props.href} target="_blank">{this.props.children}</a>
-    )
+    );
   }
-})
+});
 
 function m_thumbnail(hs, mxc, w, h) {
   return urllib.format(Object.assign({}, hs, {
@@ -1045,7 +1046,7 @@ function m_download(hs, mxc) {
 }
 
 function sortEvents(a, b) {
-  return a.origin_server_ts-b.origin_server_ts
+  return a.origin_server_ts-b.origin_server_ts;
 }
 
 function uniqEvents(a, b) {
@@ -1053,7 +1054,7 @@ function uniqEvents(a, b) {
 }
 
 function observe(element, event, handler) {
-  element.addEventListener(event, handler, false)
+  element.addEventListener(event, handler, false);
 }
 
 function image(container, src, thumb, h, w) {
@@ -1092,4 +1093,4 @@ function image(container, src, thumb, h, w) {
 ReactDOM.render(
   <App />,
   document.getElementById('root')
-)
+);
