@@ -3,7 +3,7 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
 const Linkify = require('react-linkify').default;
-//const Promise = require('bluebird');
+const Promise = require('bluebird');
 
 require('../scss/layout.scss');
 
@@ -170,10 +170,7 @@ let App = create({
         this.initialSync(); //retry
       })
       .then((responseJson) => {
-        if (responseJson == undefined) {
-          this.initialSync(); //retry
-        }
-        responseJson.joined_rooms.forEach((roomId) => {
+        Promise.map(responseJson.joined_rooms, (roomId) => {
           // Get backlog
           url = urllib.format(Object.assign({}, this.state.user.hs, {
             pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
@@ -187,108 +184,93 @@ let App = create({
           fetch(url)
             .then((response) => response.json())
             .then((responseJson) => {
-              let messages = this.state.messages;
-              let localRooms = this.state.rooms;
-              let remoteRoom = responseJson.chunk;
-
-              let combinedMessages = this.addMessages(roomId, remoteRoom);
-              messages[roomId] = combinedMessages;
-
-              messages[roomId] = combinedMessages;
-
-              function findLast(array, predicate) {
-                return array.slice().reverse().find(predicate);
-              }
-
-              if (localRooms[roomId] == null) {
-                localRooms[roomId] = {};
-              }
-
-              localRooms[roomId].lastMessage = findLast(combinedMessages, (message) => {
-                return (message.content.body != null);
-              });
-
-              localRooms[roomId].lastMessage = defaultValue(
-                localRooms[roomId].lastMessage,
-                combinedMessages[combinedMessages.length - 1]
-              );
-
-              if (localRooms[roomId].lastMessage == undefined) {
-                console.log(responseJson, roomId);
-                localRooms[roomId].lastMessage = {
-                  origin_server_ts: 0,
-                  content: {
-                    body: ""
-                  }
-                };
-              }
-
-              localRooms[roomId].notif = {unread: 0, highlight: 0};
-
-              if (localRooms[roomId] == null) {
-                localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
-              }
-              this.setState({
-                messages: messages,
-                newRooms: localRooms
-              });
-
-              //Thanks git merge for breaking this
-              //get Userlist
-              //url = urllib.format(Object.assign({}, this.state.user.hs, {
-              //  pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
-              //  query: {
-              //    access_token: this.state.user.access_token
-              //  }
-              //}));
-
-              //fetch(url)
-              //  .then((response) => response.json())
-              //  .then((responseJson) => {
-              //    let remoteUsers = responseJson.joined;
-
-              //    //Object.keys(remoteUsers).forEach((userId) => { //Really slow
-              //    //  let remoteUser = remoteUsers[userId];
-              //    //  if (remoteUser.avatar_url == null) {
-              //    //    remoteUser.img = blank;
-              //    //  } else { 
-              //    //    //remoteUser.img = m_thumbnail(
-              //    //    //  this.state.user.hs,
-              //    //    //  remoteUser.avatar_url,
-              //    //    //  64,
-              //    //    //  64
-              //    //    //);
-              //    //    remoteUser.img = blank;
-              //    //  }
-              //    //});
-
-              //    let localRooms = this.state.newRooms; //why?
-              //    localRooms[roomId].users = remoteUsers;
-              //    if (localRooms[roomId] == null) {
-              //      localRooms[roomId] = {};
-              //    }
-
-              //    Object.keys(remoteUsers).forEach((userId) => {
-              //      let remoteUser = remoteUsers[userId];
-              //      localRooms[roomId].users.push(userId);
-
-              //      if (remoteUser.avatar_url == null) {
-              //        remoteUser.img = blank;
-              //      } else {
-              //        remoteUser.img = m_thumbnail(this.state.user.hs, remoteUser.avatar_url, 64, 64);
-              //      }
-              //    });
-              //    let users = this.state.userinfo;
-              //    let combinedUsers = Object.assign({}, users, remoteUsers);
-
-              //    this.setState({
-              //      userinfo: combinedUsers,
-              //      rooms: localRooms
-              //    });
-              //  });
+              return this.backlog(roomId, responseJson);
             });
+        }).then(() => {
+          console.log("neo: done getting all backlog/userlists");
+          this.sync();
         });
-        this.sync();
+      });
+  },
+
+  backlog: function(roomId, responseJson) {
+    let messages = this.state.messages;
+    let localRooms = this.state.rooms;
+    let remoteRoom = responseJson.chunk;
+
+    let combinedMessages = this.addMessages(roomId, remoteRoom);
+    messages[roomId] = combinedMessages;
+
+    messages[roomId] = combinedMessages;
+
+    function findLast(array, predicate) {
+      return array.slice().reverse().find(predicate);
+    }
+
+    if (localRooms[roomId] == null) {
+      localRooms[roomId] = {};
+    }
+
+    localRooms[roomId].lastMessage = findLast(combinedMessages, (message) => {
+      return (message.content.body != null);
+    });
+
+    localRooms[roomId].lastMessage = defaultValue(
+      localRooms[roomId].lastMessage,
+      combinedMessages[combinedMessages.length - 1]
+    );
+
+    if (localRooms[roomId].lastMessage == undefined) {
+      console.log(responseJson, roomId);
+      localRooms[roomId].lastMessage = {
+        origin_server_ts: 0,
+        content: {
+          body: ""
+        }
+      };
+    }
+
+    localRooms[roomId].notif = {unread: 0, highlight: 0};
+    return this.userList(roomId, localRooms, messages);
+  },
+
+  userList: function(roomId, localRooms, messages) {
+    //Thanks git merge for breaking this
+    //get Userlist
+    let url = urllib.format(Object.assign({}, this.state.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
+      query: {
+        access_token: this.state.user.access_token
+      }
+    }));
+
+    return fetch(url)
+      .then((response) => response.json())
+      .then((responseJson) => {
+        let remoteUsers = responseJson.joined;
+
+        Object.keys(remoteUsers).forEach((userId) => { //Really slow
+          let remoteUser = remoteUsers[userId];
+          if (remoteUser.avatar_url == null) {
+            remoteUser.img = blank;
+          } else { 
+            //remoteUser.img = m_thumbnail(
+            //  this.state.user.hs,
+            //  remoteUser.avatar_url,
+            //  64,
+            //  64
+            //);
+            remoteUser.img = blank;
+          }
+          remoteUsers[userId] = remoteUser;
+        });
+
+        localRooms[roomId].users = remoteUsers;
+        this.setState({
+          rooms: localRooms,
+          messages: messages
+        });
+        console.log("neo: done getting userlist for", roomId);
       });
   },
 
@@ -533,6 +515,7 @@ let App = create({
             backlog={this.getBacklog}
             messages={this.state.messages[this.state.room]}
             room={this.state.room}
+            rooms={this.state.rooms}
             user={this.state.user}
             userinfo={this.state.userinfo}
             get_userinfo={this.get_userinfo}
@@ -569,18 +552,6 @@ let Send = create({
     });
   },
 
-  componentDidMount: function() {
-    let textarea = document.getElementById('text');
-    observe(textarea, 'change',  this.resize_textarea);
-    observe(textarea, 'cut',     this.resize_textarea_delayed);
-    observe(textarea, 'paste',   this.resize_textarea_delayed);
-    observe(textarea, 'drop',    this.resize_textarea_delayed);
-    observe(textarea, 'keydown', this.resize_textarea_delayed);
-    observe(textarea, 'keydown', this.shift_enter);
-
-    observe(document.getElementById('send'), 'click', this.send);
-  },
-
   setRef: function(element) {
     if (element != null) {
       element.addEventListener('change',  this.resize_textarea);
@@ -589,10 +560,19 @@ let Send = create({
       element.addEventListener('drop',    this.resize_textarea_delayed);
       element.addEventListener('keydown', this.resize_textarea_delayed);
       element.addEventListener('keydown', this.shift_enter);
+      element.addEventListener('keydown', this.autoComplete);
       this.setState({
         ref: element
       });
     }
+  },
+
+  autoComplete: function(event) {
+    setTimeout(() => {
+      let content = event.target.value;
+      console.log(this.props.rooms[this.props.room].users);
+      console.log(getCompletion(this.props.rooms[this.props.room].users, content));
+    }, 1); //to be able to see current text content correctly
   },
 
   shift_enter: function(event) {
@@ -838,21 +818,40 @@ let Room = create({
     if (this.props.user.settings.bool.split) {
       className += " split";
     }
+    let userlist;
+    if (this.props.rooms[this.props.room] != undefined) {
+      let users = this.props.rooms[this.props.room].users;
+      if (users == undefined) {
+        return null;
+      }
+      userlist = Object.keys(users).map((userId) => {
+        return (
+          <span key={userId}>
+            {users[userId].display_name}<br/>
+          </span>
+        );
+      });
+    }
     return(
-      <div className={className} id="message_window" ref={this.setRef}>
-        <Messages
-          backlog={this.props.backlog}
-          messages={this.props.messages}
-          room={this.props.room}
-          user={this.props.user}
-          scrollToBottom={this.scrollToBottom}
-          getScroll={this.getScroll}
-          onScroll={this.onScroll}
-          scroll={scroll}
-          userinfo={this.props.userinfo}
-          get_userinfo={this.props.get_userinfo}
-          unsentMessages={this.props.unsentMessages}
-        />
+      <div className="message_window_split">
+        <div className={className} id="message_window" ref={this.setRef}>
+          <Messages
+            backlog={this.props.backlog}
+            messages={this.props.messages}
+            room={this.props.room}
+            user={this.props.user}
+            scrollToBottom={this.scrollToBottom}
+            getScroll={this.getScroll}
+            onScroll={this.onScroll}
+            scroll={scroll}
+            userinfo={this.props.userinfo}
+            get_userinfo={this.props.get_userinfo}
+            unsentMessages={this.props.unsentMessages}
+          />
+        </div>
+        <div className="userlist">
+          {userlist}
+        </div>
       </div>
     );
   }
@@ -962,7 +961,6 @@ let Messages = create({
     if (this.props.unsentMessages != undefined && this.props.unsentMessages != {}) {
       let unsent = Object.keys(this.props.unsentMessages).map((eventId) => {
         let event = this.props.unsentMessages[eventId];
-        console.log(event);
         return (
           <Message
             key={eventId}

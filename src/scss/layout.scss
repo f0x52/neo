@@ -137,6 +137,7 @@ html, body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  display: flex;
 
   .darken {
     height: 100vh;
@@ -149,9 +150,11 @@ html, body {
   }
 
   .list {
-    width: 30vw;
-    height: 100vh;
-    display: inline-block;
+    //width: 30vw;
+    //height: 100vh;
+    //display: inline-block;
+    flex-grow: 1;
+    max-width: 30vw;
 
     .header {
       height: 60px;
@@ -282,12 +285,27 @@ html, body {
   }
 
   .view {
-    width: 69.8vw;
-    height: 100vh;
-    float: right;
+    //width: 69.8vw;
+    //height: 100vh;
+    //float: right;
+    //min-height: 100vh;
+    flex-grow: 3;
     display: flex;
-    min-height: 100vh;
     flex-direction: column;
+
+    .message_window_split {
+      display: flex;
+      overflow-y: auto;
+
+      .message_window, .userlist {
+        overflow-y: auto;
+      }
+
+      .userlist {
+        overflow-x: hidden;
+        max-width: 15vw;
+      }
+    }
 
     #avatar {
       height: 60px;
