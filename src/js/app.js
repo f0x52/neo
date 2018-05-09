@@ -181,7 +181,7 @@ let App = create({
             }
           }));
 
-          fetch(url)
+          return fetch(url)
             .then((response) => response.json())
             .then((responseJson) => {
               return this.backlog(roomId, responseJson);
@@ -251,7 +251,10 @@ let App = create({
 
         Object.keys(remoteUsers).forEach((userId) => { //Really slow
           let remoteUser = remoteUsers[userId];
-          if (remoteUser.avatar_url == null) {
+          if (remoteUser.display_name == undefined) {
+            remoteUser.display_name = userId;
+          }
+          if (remoteUser.avatar_url == undefined) {
             remoteUser.img = blank;
           } else { 
             //remoteUser.img = m_thumbnail(
@@ -337,16 +340,6 @@ let App = create({
             };
           }
 
-          let unread = defaultValue(
-            remoteRoom.unread_notifications.notification_count,
-            0
-          );
-
-          let highlight = defaultValue(
-            remoteRoom.unread_notifications.highlight_count,
-            0
-          );
-
           let unsentMessages = this.state.unsentMessages;
           if (unsentMessages != undefined && unsentMessages != {}) {
             let stillUnsentKeys = Object.keys(unsentMessages).filter((msgId) => {
@@ -367,6 +360,16 @@ let App = create({
             });
             this.setState({unsentMessages: updatedUnsent});
           }
+
+          let unread = defaultValue(
+            remoteRoom.unread_notifications.notification_count,
+            0
+          );
+
+          let highlight = defaultValue(
+            remoteRoom.unread_notifications.highlight_count,
+            0
+          );
 
           localRooms[roomId].notif = {unread: unread, highlight: highlight};
 
@@ -548,7 +551,8 @@ let Send = create({
   displayName: "Send",
   getInitialState: function() {
     return({
-      count: 0
+      count: 0,
+      selectedOption: 0
     });
   },
 
@@ -560,18 +564,57 @@ let Send = create({
       element.addEventListener('drop',    this.resize_textarea_delayed);
       element.addEventListener('keydown', this.resize_textarea_delayed);
       element.addEventListener('keydown', this.shift_enter);
-      element.addEventListener('keydown', this.autoComplete);
+      element.addEventListener('keydown', this.tabComplete);
       this.setState({
         ref: element
       });
     }
   },
 
-  autoComplete: function(event) {
+  tabComplete: function(event) {
+    if (event.keyCode == 9) {
+      event.preventDefault();
+    }
     setTimeout(() => {
       let content = event.target.value;
-      console.log(this.props.rooms[this.props.room].users);
-      console.log(getCompletion(this.props.rooms[this.props.room].users, content));
+      let cursorPos = event.target.selectionStart;
+      let wordStart = content.lastIndexOf(" ", cursorPos);
+      if (wordStart == -1) {
+        wordStart = 0;
+      }
+      let word = content.substr(wordStart, cursorPos-wordStart).trim();
+      if (word.endsWith(": ")) {
+        word = word.substr(0, word.length-2);
+      }
+      if (event.keyCode == 9) { //tab, update text content
+        let completions = this.state.completions;
+        let option = this.state.selectedOption;
+        if (completions.length != 0) { //completion is possible
+          let completion = this.state.completions[option];
+          let start = content.substr(0, wordStart);
+          if (start.trim() != "") {
+            start = start + " ";
+          }
+          let end = content.substr(cursorPos);
+          let replacement = start + completion + ":" + end;
+          if (replacement != undefined) {
+            event.target.value = replacement;
+          }
+        }
+        option = (option + 1) % completions.length;
+        if (isNaN(option)) { //why?
+          option = 0;
+        }
+
+        this.setState({
+          selectedOption: option
+        });
+      } else { //update suggestions
+        let completions = getCompletion(this.props.rooms[this.props.room].users, word);
+        this.setState({
+          completions: completions
+        });
+      }
     }, 1); //to be able to see current text content correctly
   },
 
@@ -824,7 +867,8 @@ let Room = create({
       if (users == undefined) {
         return null;
       }
-      userlist = Object.keys(users).map((userId) => {
+      let sortedUsers = Object.keys(users).sort(sortByUsername);
+      userlist = sortedUsers.map((userId) => {
         return (
           <span key={userId}>
             {users[userId].display_name}<br/>
@@ -1213,8 +1257,16 @@ function uniqEvents(a, b) {
   return a.event_id === b.event_id;
 }
 
-function observe(element, event, handler) {
-  element.addEventListener(event, handler, false);
+function sortByUsername(a, b) {
+  var nameA = a.toUpperCase();
+  var nameB = b.toUpperCase();
+  if (nameA < nameB) {
+    return -1;
+  }
+  if (nameA > nameB) {
+    return 1;
+  }
+  return 0;
 }
 
 function image(container, src, thumb, h, w) {
@@ -1251,13 +1303,13 @@ function image(container, src, thumb, h, w) {
 }
 
 function getCompletion(list, str) {
+  console.log("getting completions for", str);
   let completionList = [];
-  list.forEach((completion) => {
-    if (completion.includes(str)) {
+  Object.keys(list).forEach((completion) => {
+    if (completion.includes(str) || list[completion].display_name.includes(str)) {
       completionList.push(completion);
     }
   });
-  console.log(completionList);
   return(completionList);
 }
 
