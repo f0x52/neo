@@ -23,7 +23,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.03-dev5";
+let VERSION = "alpha0.03-dev6";
 
 let icon = {
   file: {
@@ -79,7 +79,7 @@ let App = create({
     json.settings = {
       bool: {
         split: false,
-        bubbles: true
+        bubbles: false
       },
       input: {
         highlights: ""
@@ -100,7 +100,7 @@ let App = create({
       userState = user;
     }
     let userinfo = this.state.userinfo;
-    userinfo[id] = {name: id, img: blank};
+    userinfo[id] = {display_name: id, img: blank};
     this.setState({userinfo: userinfo});
 
     let url = urllib.format(Object.assign({}, userState.hs, {
@@ -115,7 +115,7 @@ let App = create({
       .then(responseJson => {
         if (responseJson.displayname != undefined) {
           userinfo = this.state.userinfo;
-          userinfo[id].name = responseJson.displayname;
+          userinfo[id].display_name = responseJson.displayname;
           this.setState({userinfo: userinfo});
           localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
         }
@@ -171,8 +171,16 @@ let App = create({
 
     fetch(url)
       .then((response) => response.json())
+      .catch((error) => {
+        console.error('Error:', error);
+        this.initialSync(); //retry
+      })
       .then((responseJson) => {
+        if (responseJson == undefined) {
+          this.initialSync(); //retry
+        }
         responseJson.joined_rooms.forEach((roomId) => {
+          // Get backlog
           url = urllib.format(Object.assign({}, this.state.user.hs, {
             pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
             query: {
@@ -226,11 +234,43 @@ let App = create({
               if (localRooms[roomId] == null) {
                 localRooms[roomId].prev_batch = remoteRoom.timeline.prev_batch;
               }
-
               this.setState({
                 messages: messages,
-                rooms: localRooms,
               });
+
+              //get Userlist
+
+              url = urllib.format(Object.assign({}, this.state.user.hs, {
+                pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
+                query: {
+                  access_token: this.state.user.access_token
+                }
+              }));
+
+              fetch(url)
+                .then((response) => response.json())
+                .then((responseJson) => {
+                  let remoteUsers = responseJson.joined;
+
+                  //Object.keys(remoteUsers).forEach((userId) => { //Really slow
+                  //  let remoteUser = remoteUsers[userId];
+                  //  if (remoteUser.avatar_url == null) {
+                  //    remoteUser.img = blank;
+                  //  } else { 
+                  //    //remoteUser.img = m_thumbnail(
+                  //    //  this.state.user.hs,
+                  //    //  remoteUser.avatar_url,
+                  //    //  64,
+                  //    //  64
+                  //    //);
+                  //    remoteUser.img = blank;
+                  //  }
+                  //});
+                  localRooms[roomId].userlist = remoteUsers;
+                  this.setState({
+                    rooms: localRooms,
+                  });
+                });
             });
         });
         this.sync();
@@ -310,6 +350,27 @@ let App = create({
             0
           );
 
+          let unsentMessages = this.state.unsentMessages;
+          if (unsentMessages != undefined && unsentMessages != {}) {
+            let stillUnsentKeys = Object.keys(unsentMessages).filter((msgId) => {
+              let val = unsentMessages[msgId];
+              if (val.sent) {
+                return remoteRoom.timeline.events.every((event) => {
+                  if (event.event_id == val.id) {
+                    return false;
+                  }
+                  return true;
+                });
+              }
+              return true;
+            });
+            let updatedUnsent = {};
+            stillUnsentKeys.forEach((key) => {
+              updatedUnsent[key] = unsentMessages[key];
+            });
+            this.setState({unsentMessages: updatedUnsent});
+          }
+
           localRooms[roomId].notif = {unread: unread, highlight: highlight};
 
           if (localRooms[roomId] == null) {
@@ -343,7 +404,7 @@ let App = create({
                 break;
             }
           });
-          localInvites[roomId] = {name: name, avatar: avatar, invitedBy: invitedBy};
+          localInvites[roomId] = {display_name: name, avatar: avatar, invitedBy: invitedBy};
         });
         //persistLocalStorage({
         //  messages: messages,
@@ -460,6 +521,7 @@ let App = create({
             user={this.state.user}
             userinfo={this.state.userinfo}
             get_userinfo={this.get_userinfo}
+            unsentMessages={this.state.unsentMessages}
           />
           <div className="input">
             <label htmlFor="attachment">
@@ -473,9 +535,9 @@ let App = create({
             <Send
               room={this.state.room}
               user={this.state.user}
+              setParentState={this.setStateFromChild}
+              unsentMessages={this.state.unsentMessages}
             />
-            <img src={icon.send.dark} id="send" className="dark"/>
-            <img src={icon.send.light} id="send" className="light"/>
           </div>
         </div>
       </div>
@@ -485,6 +547,12 @@ let App = create({
 
 let Send = create({
   displayName: "Send",
+  getInitialState: function() {
+    return({
+      count: 0
+    });
+  },
+
   componentDidMount: function() {
     let textarea = document.getElementById('text');
     observe(textarea, 'change',  this.resize_textarea);
@@ -497,6 +565,20 @@ let Send = create({
     observe(document.getElementById('send'), 'click', this.send);
   },
 
+  setRef: function(element) {
+    if (element != null) {
+      element.addEventListener('change',  this.resize_textarea);
+      element.addEventListener('cut',     this.resize_textarea_delayed);
+      element.addEventListener('paste',   this.resize_textarea_delayed);
+      element.addEventListener('drop',    this.resize_textarea_delayed);
+      element.addEventListener('keydown', this.resize_textarea_delayed);
+      element.addEventListener('keydown', this.shift_enter);
+      this.setState({
+        ref: element
+      });
+    }
+  },
+
   shift_enter: function(event) {
     if (event.keyCode == 13 && !event.shiftKey) {
       event.preventDefault();
@@ -504,18 +586,26 @@ let Send = create({
     }
   },
 
-  resize_textarea: function() {
-    let textarea = document.getElementById('text');
-    textarea.style.height = 'auto';
-    textarea.style.height = textarea.scrollHeight+'px';
+  resize_textarea: function(element) {
+    if (element == undefined) {
+      return;
+    }
+    let ref = element.target;
+    if (ref != undefined) {
+      ref.style.height = 'auto';
+      ref.style.height = ref.scrollHeight+'px';
+    }
   },
 
-  resize_textarea_delayed: function() {
-    window.setTimeout(this.resize_textarea, 5);
+  resize_textarea_delayed: function(e) {
+    setTimeout(() => this.resize_textarea(e), 5);
   },
 
   send: function() {
-    let textarea = document.getElementById('text');
+    if (this.state.ref == null) {
+      return;
+    }
+    let textarea = this.state.ref;
     if(textarea.value != "") {
       let msg = textarea.value.replace(/^\s+|\s+$/g, '');
       textarea.value = "";
@@ -527,6 +617,19 @@ let Send = create({
           access_token: this.props.user.access_token
         }
       }));
+
+      let msgId = this.state.count;
+      let unsentMessages = defaultValue(this.props.unsentMessages, {});
+      unsentMessages[msgId] = {
+        content: {body: msg},
+        origin_server_ts: Date.now()
+      };
+
+      this.setState({
+        count: this.state.count+1
+      });
+
+      this.props.setParentState("unsentMessages", unsentMessages);
 
       let body = {
         "msgtype": "m.text",
@@ -541,7 +644,13 @@ let Send = create({
         })
       }).then(res => res.json())
         .catch(error => console.error('Error:', error))
-        .then(response => console.log('Success:', response));
+        .then(response => {
+          console.log('Success:', response);
+          let unsentMessages = this.props.unsentMessages;
+          unsentMessages[msgId].sent = true;
+          unsentMessages[msgId].id = response.event_id;
+          this.props.setParentState("unsentMessages", unsentMessages);
+        });
     }
     textarea.value = "";
     this.resize_textarea();
@@ -549,12 +658,17 @@ let Send = create({
 
   render: function() {
     return (
-      <textarea
-        id="text"
-        rows="1"
-        placeholder="Write a message..."
-        spellCheck="false">
-      </textarea>
+      <React.Fragment>
+        <textarea
+          id="text"
+          rows="1"
+          placeholder="Write a message..."
+          ref={this.setRef}
+          spellCheck="false">
+        </textarea>
+        <img src={icon.send.dark} id="send" onClick={() => this.send}className="dark"/>
+        <img src={icon.send.light} id="send" onClick={() => this.send} className="light"/>
+      </React.Fragment>
     );
   }
 });
@@ -720,6 +834,7 @@ let Room = create({
           scroll={scroll}
           userinfo={this.props.userinfo}
           get_userinfo={this.props.get_userinfo}
+          unsentMessages={this.props.unsentMessages}
         />
       </div>
     );
@@ -823,8 +938,31 @@ let Messages = create({
         );
       }
       return null;
+    });
+
+    let unsentWrap = null;
+
+    if (this.props.unsentMessages != undefined && this.props.unsentMessages != {}) {
+      let unsent = Object.keys(this.props.unsentMessages).map((eventId) => {
+        let event = this.props.unsentMessages[eventId];
+        console.log(event);
+        return (
+          <Message
+            key={eventId}
+            info={this.props.userinfo[this.props.user.user_id]}
+            event={event}
+            group="no"
+            user={this.props.user}
+            sent={event.sent}
+          />
+        );
+      });
+      unsentWrap = (
+        <div className="unsent">
+          {unsent}
+        </div>
+      );
     }
-    );
     return (
       <div>
         <span onClick={() => this.props.backlog(this.props.room)}>
@@ -832,6 +970,7 @@ let Messages = create({
         </span><br/>
         {this.props.room}
         {messages}
+        {unsentWrap}
       </div>
     );
   }
@@ -853,6 +992,9 @@ let Message = create({
 
   render: function() {
     let classArray = ["message", this.props.id];
+    if (this.props.event.sent) {
+      classArray.push("sent");
+    }
     let highlights = this.props.user.settings.input.highlights.split(" ");
     highlights.push(this.props.user.username);
     if (this.props.event.content.body != undefined) {
@@ -1032,15 +1174,15 @@ let LinkInfo = create({
   }
 });
 
-//function m_thumbnail(hs, mxc, w, h) {
-//  return urllib.format(Object.assign({}, hs, {
-//    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
-//    query: {
-//      width: w,
-//      height: h
-//    }
-//  }));
-//}
+function m_thumbnail(hs, mxc, w, h) {
+  return urllib.format(Object.assign({}, hs, {
+    pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
+    query: {
+      width: w,
+      height: h
+    }
+  }));
+}
 
 function m_download(hs, mxc) {
   return urllib.format(Object.assign({}, hs, {

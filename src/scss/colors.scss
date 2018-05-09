@@ -142,6 +142,12 @@ a:hover {
       .message.nobubble {
         background-color: transparent;
       }
+      .unsent .message {
+        background-color: red;
+      }
+      .unsent .message.sent {
+        background-color: green;
+      }
     }
 
     .input {

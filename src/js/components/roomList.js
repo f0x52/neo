@@ -130,7 +130,7 @@ let Menu = create({
         <div style={style} id="menu">
           <div id="user">
             <img src={this.props.userinfo[this.props.user.user_id].img}/>
-            <span>{this.props.userinfo[this.props.user.user_id].name}</span>
+            <span>{this.props.userinfo[this.props.user.user_id].display_name}</span>
           </div>
           {/*<div>New Room</div>*/}
           <div onClick={this.join}>Join Room</div>
@@ -346,7 +346,7 @@ let InviteEntry = create({
   render: function() {
     let msg = "";
     if (this.props.invite.invitedBy != null && this.props.userinfo[this.props.invite.invitedBy] != undefined) {
-      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].name}</b> invited you</React.Fragment>;
+      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].display_name}</b> invited you</React.Fragment>;
     }
     return(
       <div
@@ -358,7 +358,7 @@ let InviteEntry = create({
           onError={(e)=>{e.target.src = blank;}}
         />
         <span id="name">
-          {this.props.invite.name}
+          {this.props.invite.display_name}
         </span><br/>
         <span className="last_msg">
           {msg}
@@ -376,7 +376,7 @@ let RoomEntry = create({
   displayName: "RoomEntry",
   getInitialState: function() {
     return ({
-      name: this.props.id,
+      display_name: this.props.id,
       img: blank,
     });
   },
@@ -393,7 +393,7 @@ let RoomEntry = create({
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson.name != undefined) {
-          this.setState({name: responseJson.name});
+          this.setState({display_name: responseJson.name});
         }
       });
 
@@ -455,7 +455,7 @@ let RoomEntry = create({
     if (this.props.userinfo[this.props.lastEvent.sender] == undefined) {
       this.props.get_userinfo(this.props.lastEvent.sender);
     }
-    let user = this.props.userinfo[this.props.lastEvent.sender].name;
+    let user = this.props.userinfo[this.props.lastEvent.sender].display_name;
     let unread_count = this.props.notif.unread;
     if (this.props.notif.highlight > 0) {
       unread_count = "@";
@@ -472,7 +472,7 @@ let RoomEntry = create({
           onError={(e)=>{e.target.src = blank;}}
         />
         <span id="name">
-          {this.state.name}
+          {this.state.display_name}
         </span><br/>
         <span className="align_right">
           <span className="timestamp">
