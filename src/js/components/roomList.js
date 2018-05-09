@@ -441,9 +441,9 @@ let RoomEntry = create({
   },
 
   render: function() {
-    if (this.props.rooms[this.props.id].users.length == 0) {
-      return null;
-    }
+    //if (this.props.rooms[this.props.id].users.length == 0) {
+    //  return null;
+    //}
     let time = new Date(this.props.lastEvent.origin_server_ts);
     let now = new Date();
     let time_string;
