@@ -134,13 +134,7 @@ let App = create({
         if(responseJson.errcode == undefined &&
           responseJson.avatar_url != undefined) {
           userinfo = this.state.userinfo;
-          userinfo[id].img = urllib.format(Object.assign({}, userState.hs, {
-            pathname: `/_matrix/media/r0/thumbnail/${responseJson.avatar_url.substring(6)}`,
-            query: {
-              width: 64,
-              height: 64
-            }
-          }));
+          userinfo[id].img = m_thumbnail(userState.hs, responseJson.avatar_url, 64, 64);
           this.setState({userinfo: userinfo});
           localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
         }
@@ -236,41 +230,62 @@ let App = create({
               }
               this.setState({
                 messages: messages,
+                newRooms: localRooms
               });
 
+              //Thanks git merge for breaking this
               //get Userlist
+              //url = urllib.format(Object.assign({}, this.state.user.hs, {
+              //  pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
+              //  query: {
+              //    access_token: this.state.user.access_token
+              //  }
+              //}));
 
-              url = urllib.format(Object.assign({}, this.state.user.hs, {
-                pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
-                query: {
-                  access_token: this.state.user.access_token
-                }
-              }));
+              //fetch(url)
+              //  .then((response) => response.json())
+              //  .then((responseJson) => {
+              //    let remoteUsers = responseJson.joined;
 
-              fetch(url)
-                .then((response) => response.json())
-                .then((responseJson) => {
-                  let remoteUsers = responseJson.joined;
+              //    //Object.keys(remoteUsers).forEach((userId) => { //Really slow
+              //    //  let remoteUser = remoteUsers[userId];
+              //    //  if (remoteUser.avatar_url == null) {
+              //    //    remoteUser.img = blank;
+              //    //  } else { 
+              //    //    //remoteUser.img = m_thumbnail(
+              //    //    //  this.state.user.hs,
+              //    //    //  remoteUser.avatar_url,
+              //    //    //  64,
+              //    //    //  64
+              //    //    //);
+              //    //    remoteUser.img = blank;
+              //    //  }
+              //    //});
 
-                  //Object.keys(remoteUsers).forEach((userId) => { //Really slow
-                  //  let remoteUser = remoteUsers[userId];
-                  //  if (remoteUser.avatar_url == null) {
-                  //    remoteUser.img = blank;
-                  //  } else { 
-                  //    //remoteUser.img = m_thumbnail(
-                  //    //  this.state.user.hs,
-                  //    //  remoteUser.avatar_url,
-                  //    //  64,
-                  //    //  64
-                  //    //);
-                  //    remoteUser.img = blank;
-                  //  }
-                  //});
-                  localRooms[roomId].userlist = remoteUsers;
-                  this.setState({
-                    rooms: localRooms,
-                  });
-                });
+              //    let localRooms = this.state.newRooms; //why?
+              //    localRooms[roomId].users = remoteUsers;
+              //    if (localRooms[roomId] == null) {
+              //      localRooms[roomId] = {};
+              //    }
+
+              //    Object.keys(remoteUsers).forEach((userId) => {
+              //      let remoteUser = remoteUsers[userId];
+              //      localRooms[roomId].users.push(userId);
+
+              //      if (remoteUser.avatar_url == null) {
+              //        remoteUser.img = blank;
+              //      } else {
+              //        remoteUser.img = m_thumbnail(this.state.user.hs, remoteUser.avatar_url, 64, 64);
+              //      }
+              //    });
+              //    let users = this.state.userinfo;
+              //    let combinedUsers = Object.assign({}, users, remoteUsers);
+
+              //    this.setState({
+              //      userinfo: combinedUsers,
+              //      rooms: localRooms
+              //    });
+              //  });
             });
         });
         this.sync();
@@ -534,6 +549,7 @@ let App = create({
             />
             <Send
               room={this.state.room}
+              rooms={this.state.rooms}
               user={this.state.user}
               setParentState={this.setStateFromChild}
               unsentMessages={this.state.unsentMessages}
@@ -580,6 +596,7 @@ let Send = create({
   },
 
   shift_enter: function(event) {
+    setTimeout(this.completion, 1);
     if (event.keyCode == 13 && !event.shiftKey) {
       event.preventDefault();
       this.send();
@@ -850,7 +867,7 @@ let Messages = create({
     });
   },
 
-  componentDidUpdate: function(prevProps) {
+  componentDidUpdate: function() {
     let scrollState = this.props.getScroll();
 
     if (this.props.scroll.scrollTop == null) {
@@ -1106,7 +1123,7 @@ let Message = create({
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
-            <b>{this.props.info.name}</b>
+            <b>{this.props.info.display_name}</b>
             {media}
             <div className="flex">
               <p>
@@ -1233,6 +1250,17 @@ function image(container, src, thumb, h, w) {
       </a>
     </div>
   );
+}
+
+function getCompletion(list, str) {
+  let completionList = [];
+  list.forEach((completion) => {
+    if (completion.includes(str)) {
+      completionList.push(completion);
+    }
+  });
+  console.log(completionList);
+  return(completionList);
 }
 
 ReactDOM.render(
