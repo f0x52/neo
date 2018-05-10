@@ -528,14 +528,6 @@ let App = create({
             unsentMessages={this.state.unsentMessages}
           />
           <div className="input">
-            <label htmlFor="attachment">
-              <img src={icon.file.dark} id="file" className="dark"/>
-              <img src={icon.file.light} id="file" className="light"/>
-            </label>
-            <File
-              room={this.state.room}
-              user={this.state.user}
-            />
             <Send
               room={this.state.room}
               rooms={this.state.rooms}
@@ -575,7 +567,7 @@ let Send = create({
   },
 
   tabComplete: function(event) {
-    if (event.keyCode == 9) {
+    if (event.keyCode == 9 || event.keyCode == 38 || event.keyCode == 40) {
       event.preventDefault();
     }
     setTimeout(() => {
@@ -586,14 +578,17 @@ let Send = create({
         wordStart = 0;
       }
       let word = content.substr(wordStart, cursorPos-wordStart).trim();
-      if (word.startsWith("@")) {
-        word = word.substr(1);
+      if (!word.startsWith("@")) {
+        this.setState({
+          completions: []
+        });
+        return;
       }
       if (event.keyCode == 9) { //tab, update text content
         let completions = this.state.completions;
         let option = this.state.selectedOption;
         if (completions.length != 0) { //completion is possible
-          let completion = this.state.completions[option];
+          let completion = this.state.completions[option][0];
           let completion_parts = completion.split(":");
           completion = completion_parts[0];
           let start = content.substr(0, wordStart);
@@ -616,8 +611,19 @@ let Send = create({
         });
       } else { //update suggestions
         let completions = getCompletion(this.props.rooms[this.props.room].users, word);
+        let option = this.state.selectedOption;
+        if (event.keyCode == 38) { // up arrow
+          option = (option - 1) % completions.length;
+        } else if (event.keyCode == 40) { //down arrow
+          option = (option + 1) % completions.length;
+        }
+
+        if (isNaN(option)) { //why?
+          option = 0;
+        }
         this.setState({
-          completions: completions
+          completions: completions,
+          selectedOption: option
         });
       }
     }, 1); //to be able to see current text content correctly
@@ -702,8 +708,34 @@ let Send = create({
   },
 
   render: function() {
+    let completions;
+    if (this.state.completions != undefined && this.state.completions.length > 0) {
+      completions = (
+        <div className="completions">
+          {
+            this.state.completions.map((completion, id) => {
+              let className;
+              if (id == this.state.selectedOption) {
+                className = "active";
+              }
+              return (
+                <div key={completion} className={className}>{completion[0]} - {completion[1]}</div>
+              );
+            })
+          }
+        </div>);
+    }
     return (
-      <React.Fragment>
+      <div className="compose">
+        <label htmlFor="attachment">
+          <img src={icon.file.dark} id="file" className="dark"/>
+          <img src={icon.file.light} id="file" className="light"/>
+        </label>
+        <File
+          room={this.state.room}
+          user={this.state.user}
+        />
+        {completions}
         <textarea
           id="text"
           rows="1"
@@ -713,7 +745,7 @@ let Send = create({
         </textarea>
         <img src={icon.send.dark} id="send" onClick={() => this.send}className="dark"/>
         <img src={icon.send.light} id="send" onClick={() => this.send} className="light"/>
-      </React.Fragment>
+      </div>
     );
   }
 });
@@ -1308,11 +1340,15 @@ function image(container, src, thumb, h, w) {
 }
 
 function getCompletion(list, str) {
-  console.log("getting completions for", str);
   let completionList = [];
+  console.log("neo: getting completion for", str);
+  if (str.trim() == "") {
+    return completionList;
+  }
+  str = str.toUpperCase();
   Object.keys(list).forEach((completion) => {
-    if (completion.includes(str) || list[completion].display_name.includes(str)) {
-      completionList.push(completion);
+    if (completion.toUpperCase().includes(str) || list[completion].display_name.toUpperCase().includes(str)) {
+      completionList.push([completion, list[completion].display_name]);
     }
   });
   return(completionList);

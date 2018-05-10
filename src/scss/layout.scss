@@ -153,9 +153,11 @@ html, body {
     //width: 30vw;
     //height: 100vh;
     //display: inline-block;
-    flex-grow: 1;
+    //flex-grow: 1;
     flex-basis: 30vw;
+    width: 30vw;
     max-width: 30vw;
+    min-width: 30vw;
 
     .header {
       height: 60px;
@@ -435,39 +437,58 @@ html, body {
     }
 
     .input {
-      padding: 12px;
-      position: relative;
-      #file {
-        cursor: pointer;
-        height: 30px;
-        position: absolute;
-        bottom: 6px;
-        left: 6px;
-      }
+      .compose {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        position: relative;
 
-      #attachment {
-        display: none;
-      }
+        .completions {
+          flex: 0 1 auto;
+          max-height: 25vh;
+          margin-left: -12px;
+          overflow-y: auto;
+          margin-top: -12px;
+          margin-bottom: 7px;
 
-      textarea {
-        width: calc(100% - 72px);
-        margin-left: 36px;
-        border: none;
-        background: transparent;
+          div {
+            padding: 7px;
+          }
+        }
 
-        resize: none;
-        overflow: hidden;
-        overflow-y: auto;
-        outline: none;
-        max-height: 150px;
-      }
+        textarea {
+          flex: 0 1 auto;
+          width: calc(100% - 32px);
+          border: none;
+          background: transparent;
 
-      #send {
-        cursor: pointer;
-        height: 30px;
-        position: absolute;
-        bottom: 6px;
-        right: 6px;
+          resize: none;
+          overflow: hidden;
+          overflow-y: auto;
+          outline: none;
+          max-height: 150px;
+          align-self: flex-end;
+        }
+
+        #file {
+          cursor: pointer;
+          height: 30px;
+          position: absolute;
+          bottom: 6px;
+          left: 6px;
+        }
+
+        #attachment {
+          display: none;
+        }
+  
+        #send {
+          cursor: pointer;
+          height: 30px;
+          position: absolute;
+          bottom: 6px;
+          right: 6px;
+        }
       }
     }
   }
