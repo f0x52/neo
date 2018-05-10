@@ -33,6 +33,7 @@
     "default-value": "^1.0.0",
     "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.7.0",
+    "fetch-retry": "^1.2.1",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-linkify": "^0.2.2"

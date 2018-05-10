@@ -4,6 +4,7 @@ const React = require('react');
 const ReactDOM = require('react-dom');
 const Linkify = require('react-linkify').default;
 const Promise = require('bluebird');
+const rfetch = require('fetch-retry');
 
 require('../scss/layout.scss');
 
@@ -12,6 +13,8 @@ let defaultValue = require('default-value');
 let create = require('create-react-class');
 let urllib = require('url');
 let debounce = require('debounce');
+
+let options = {retries: 5, retryDelay: 200};
 
 //let persistLocalStorage = require('./lib/persist-local-storage');
 
@@ -110,7 +113,7 @@ let App = create({
       }
     }));
 
-    this.nameFetch = fetch(url)
+    this.nameFetch = rfetch(url, options)
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson.displayname != undefined) {
@@ -128,7 +131,7 @@ let App = create({
       }
     }));
 
-    this.imgFetch = fetch(url)
+    this.imgFetch = rfetch(url, options)
       .then(response => response.json())
       .then(responseJson => {
         if(responseJson.errcode == undefined &&
@@ -163,7 +166,7 @@ let App = create({
       }
     }));
 
-    fetch(url)
+    rfetch(url, options)
       .then((response) => response.json())
       .catch((error) => {
         console.error('Error:', error);
@@ -181,7 +184,7 @@ let App = create({
             }
           }));
 
-          return fetch(url)
+          return rfetch(url, options)
             .then((response) => response.json())
             .then((responseJson) => {
               return this.backlog(roomId, responseJson);
@@ -244,7 +247,7 @@ let App = create({
       }
     }));
 
-    return fetch(url)
+    return rfetch(url, options)
       .then((response) => response.json())
       .then((responseJson) => {
         let remoteUsers = responseJson.joined;
@@ -289,7 +292,7 @@ let App = create({
     if(this.state.user.next_batch != undefined) {
       url.query.since = this.state.user.next_batch;
     }
-    fetch(urllib.format(url))
+    rfetch(urllib.format(url), options)
       .then((response) => response.json())
       .catch((error) => {
         console.error('Error:', error);
@@ -453,7 +456,7 @@ let App = create({
       }
     }));
 
-    fetch(reqUrl)
+    rfetch(reqUrl, options)
       .then((response) => response.json())
       .then((responseJson) => {
         let combinedMessages = this.addMessages(roomId, responseJson.chunk);
@@ -583,20 +586,22 @@ let Send = create({
         wordStart = 0;
       }
       let word = content.substr(wordStart, cursorPos-wordStart).trim();
-      if (word.endsWith(": ")) {
-        word = word.substr(0, word.length-2);
+      if (word.startsWith("@")) {
+        word = word.substr(1);
       }
       if (event.keyCode == 9) { //tab, update text content
         let completions = this.state.completions;
         let option = this.state.selectedOption;
         if (completions.length != 0) { //completion is possible
           let completion = this.state.completions[option];
+          let completion_parts = completion.split(":");
+          completion = completion_parts[0];
           let start = content.substr(0, wordStart);
           if (start.trim() != "") {
             start = start + " ";
           }
           let end = content.substr(cursorPos);
-          let replacement = start + completion + ":" + end;
+          let replacement = start + completion + end;
           if (replacement != undefined) {
             event.target.value = replacement;
           }
@@ -676,13 +681,13 @@ let Send = create({
         "body": msg,
       };
 
-      fetch(url, {
+      rfetch(url, {
         method: 'PUT',
         body: JSON.stringify(body),
         headers: new Headers({
           'Content-Type': 'application/json'
         })
-      }).then(res => res.json())
+      }, options).then(res => res.json())
         .catch(error => console.error('Error:', error))
         .then(response => {
           console.log('Success:', response);
@@ -771,13 +776,13 @@ let Login = create({
       pathname: "/_matrix/client/r0/login"
     }));
 
-    fetch(url, {
+    rfetch(url, {
       body: JSON.stringify(data),
       headers: {
         'content-type': 'application/json'
       },
       method: 'POST',
-    }).then((response) => {
+    }, options).then((response) => {
       if (!response.ok) {
         throw Error(response.statusText);
       }
@@ -1203,7 +1208,7 @@ let LinkInfo = create({
       }
     }));
 
-    fetch(m_url)
+    rfetch(m_url)
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) {
