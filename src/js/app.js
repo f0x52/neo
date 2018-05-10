@@ -59,6 +59,7 @@ let App = create({
     return({
       user: user,
       userinfo: userinfo,
+      unsentMessages: {},
       rooms: rooms,
       invites: invites,
       handledInvites: {},
@@ -260,13 +261,13 @@ let App = create({
           if (remoteUser.avatar_url == undefined) {
             remoteUser.img = blank;
           } else { 
-            //remoteUser.img = m_thumbnail(
-            //  this.state.user.hs,
-            //  remoteUser.avatar_url,
-            //  64,
-            //  64
-            //);
-            remoteUser.img = blank;
+            remoteUser.img = m_thumbnail(
+              this.state.user.hs,
+              remoteUser.avatar_url,
+              64,
+              64
+            );
+            //remoteUser.img = blank;
           }
           remoteUsers[userId] = remoteUser;
         });
@@ -344,9 +345,10 @@ let App = create({
           }
 
           let unsentMessages = this.state.unsentMessages;
-          if (unsentMessages != undefined && unsentMessages != {}) {
-            let stillUnsentKeys = Object.keys(unsentMessages).filter((msgId) => {
-              let val = unsentMessages[msgId];
+          let roomUnsent = unsentMessages[roomId];
+          if (roomUnsent != undefined && roomUnsent != {}) {
+            let stillUnsentKeys = Object.keys(roomUnsent).filter((msgId) => {
+              let val = roomUnsent[msgId];
               if (val.sent) {
                 return remoteRoom.timeline.events.every((event) => {
                   if (event.event_id == val.id) {
@@ -359,9 +361,10 @@ let App = create({
             });
             let updatedUnsent = {};
             stillUnsentKeys.forEach((key) => {
-              updatedUnsent[key] = unsentMessages[key];
+              updatedUnsent[key] = roomUnsent[key];
             });
-            this.setState({unsentMessages: updatedUnsent});
+            unsentMessages[roomId] = updatedUnsent;
+            this.setState({unsentMessages: unsentMessages});
           }
 
           let unread = defaultValue(
@@ -501,22 +504,10 @@ let App = create({
       );
     }
 
-    return (
-      <div className="main">
-        <div>{loading}</div>
-        <RoomList
-          room={this.state.room}
-          rooms={this.state.rooms}
-          invites={this.state.invites}
-          user={this.state.user}
-          userinfo={this.state.userinfo}
-          get_userinfo={this.get_userinfo}
-          setParentState={this.setStateFromChild}
-          icon={icon}
-          logout={this.logout}
-          removeInvite={this.removeInvite}
-        />
-        <div className="view">
+    let view;
+    if (this.state.room != 0) {
+      view = (
+        <React.Fragment>
           <Room
             backlog={this.getBacklog}
             messages={this.state.messages[this.state.room]}
@@ -536,6 +527,27 @@ let App = create({
               unsentMessages={this.state.unsentMessages}
             />
           </div>
+        </React.Fragment>
+      );
+    }
+
+    return (
+      <div className="main">
+        <div>{loading}</div>
+        <RoomList
+          room={this.state.room}
+          rooms={this.state.rooms}
+          invites={this.state.invites}
+          user={this.state.user}
+          userinfo={this.state.userinfo}
+          get_userinfo={this.get_userinfo}
+          setParentState={this.setStateFromChild}
+          icon={icon}
+          logout={this.logout}
+          removeInvite={this.removeInvite}
+        />
+        <div className="view">
+          {view}
         </div>
       </div>
     );
@@ -587,7 +599,7 @@ let Send = create({
       if (event.keyCode == 9) { //tab, update text content
         let completions = this.state.completions;
         let option = this.state.selectedOption;
-        if (completions.length != 0) { //completion is possible
+        if (completions.length != 0 && completions[option] != undefined) { //completion is possible
           let completion = this.state.completions[option][0];
           let completion_parts = completion.split(":");
           completion = completion_parts[0];
@@ -670,8 +682,10 @@ let Send = create({
       }));
 
       let msgId = this.state.count;
-      let unsentMessages = defaultValue(this.props.unsentMessages, {});
-      unsentMessages[msgId] = {
+      let roomId = this.props.room;
+      let unsentMessages = this.props.unsentMessages;
+      let roomUnsent = defaultValue(unsentMessages[roomId], {});
+      roomUnsent[msgId] = {
         content: {body: msg},
         origin_server_ts: Date.now()
       };
@@ -679,7 +693,8 @@ let Send = create({
       this.setState({
         count: this.state.count+1
       });
-
+      
+      unsentMessages[roomId] = roomUnsent;
       this.props.setParentState("unsentMessages", unsentMessages);
 
       let body = {
@@ -696,10 +711,12 @@ let Send = create({
       }, options).then(res => res.json())
         .catch(error => console.error('Error:', error))
         .then(response => {
-          console.log('Success:', response);
           let unsentMessages = this.props.unsentMessages;
-          unsentMessages[msgId].sent = true;
-          unsentMessages[msgId].id = response.event_id;
+          let roomUnsent = unsentMessages[roomId];
+          console.log('Success:', response);
+          roomUnsent[msgId].sent = true;
+          roomUnsent[msgId].id = response.event_id;
+          unsentMessages[roomId] = roomUnsent;
           this.props.setParentState("unsentMessages", unsentMessages);
         });
     }
@@ -719,7 +736,10 @@ let Send = create({
                 className = "active";
               }
               return (
-                <div key={completion} className={className}>{completion[0]} - {completion[1]}</div>
+                <div key={completion} className={className}>
+                  <img src={completion[2]}/>
+                  <b>{completion[1]}</b> {completion[0]}
+                </div>
               );
             })
           }
@@ -1037,11 +1057,13 @@ let Messages = create({
       return null;
     });
 
-    let unsentWrap = null;
-
-    if (this.props.unsentMessages != undefined && this.props.unsentMessages != {}) {
-      let unsent = Object.keys(this.props.unsentMessages).map((eventId) => {
-        let event = this.props.unsentMessages[eventId];
+    let unsentWrap;
+    let unsentMessages = this.props.unsentMessages;
+    let roomUnsent = defaultValue(unsentMessages[this.props.room], {});
+    if (roomUnsent != {}) {
+      let unsent = Object.keys(roomUnsent).map((eventId) => {
+        let event = roomUnsent[eventId];
+        console.log(event);
         return (
           <Message
             key={eventId}
@@ -1348,7 +1370,7 @@ function getCompletion(list, str) {
   str = str.toUpperCase();
   Object.keys(list).forEach((completion) => {
     if (completion.toUpperCase().includes(str) || list[completion].display_name.toUpperCase().includes(str)) {
-      completionList.push([completion, list[completion].display_name]);
+      completionList.push([completion, list[completion].display_name, list[completion].img]);
     }
   });
   return(completionList);

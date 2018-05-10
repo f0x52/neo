@@ -156,6 +156,7 @@ a:hover {
 
       .completions {
         background-color: lighten($bg, 1);
+
         .active {
           background-color: darken($bg, 6);
         }
