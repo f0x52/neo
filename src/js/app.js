@@ -752,8 +752,8 @@ let Send = create({
           <img src={icon.file.light} id="file" className="light"/>
         </label>
         <File
-          room={this.state.room}
-          user={this.state.user}
+          room={this.props.room}
+          user={this.props.user}
         />
         {completions}
         <textarea
