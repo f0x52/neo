@@ -754,6 +754,8 @@ let Send = create({
         <File
           room={this.props.room}
           user={this.props.user}
+          unsentMessages={this.props.unsentMessages}
+          setParentState={this.props.setParentState}
         />
         {completions}
         <textarea
@@ -1063,7 +1065,6 @@ let Messages = create({
     if (roomUnsent != {}) {
       let unsent = Object.keys(roomUnsent).map((eventId) => {
         let event = roomUnsent[eventId];
-        console.log(event);
         return (
           <Message
             key={eventId}

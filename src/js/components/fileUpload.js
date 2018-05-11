@@ -1,7 +1,12 @@
+'use strict';
+
 const React = require("react");
 const create = require("create-react-class");
 let urllib = require('url');
 let riot = require('../lib/riot-utils.js');
+let defaultValue = require('default-value');
+const rfetch = require('fetch-retry');
+let options = {retries: 5, retryDelay: 200};
 
 let File = create ({
   displayName: "fileUpload",
@@ -9,8 +14,14 @@ let File = create ({
     document.getElementById("attachment").addEventListener('change', this.upload, false); //TODO: update to ref
   },
 
+  getInitialState: function() {
+    return ({
+      count: 0
+    });
+  },
+
   upload: function() {
-    let room = this.props.room;
+    let roomId = this.props.room;
     let file = document.getElementById("attachment").files[0];
     this.setState({file: file});
     let upload_url = urllib.format(Object.assign({}, this.props.user.hs, {
@@ -19,38 +30,54 @@ let File = create ({
         access_token: this.props.user.access_token
       }
     }));
-    fetch(upload_url, {
+
+    let msgId = this.state.count;
+    let unsentMessages = this.props.unsentMessages;
+    let roomUnsent = defaultValue(unsentMessages[roomId], {});
+    roomUnsent[msgId] = {
+      content: {body: this.state.file.name},
+      origin_server_ts: Date.now()
+    };
+
+    this.setState({
+      count: this.state.count+1
+    });
+    
+    unsentMessages[roomId] = roomUnsent;
+    this.props.setParentState("unsentMessages", unsentMessages);
+
+    rfetch(upload_url, {
       method: 'POST',
       body: this.state.file,
-    }).then(
+    }, options).then(
       response => response.json()
     ).then(response => {
       this.setState({"url": response.content_uri});
-      let unixtime = Date.now()
+      let unixtime = Date.now();
 
       let msg_url = urllib.format(Object.assign({}, this.props.user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${room}/send/m.room.message/${unixtime}`,
+        pathname: `/_matrix/client/r0/rooms/${roomId}/send/m.room.message/${unixtime}`,
         query: {
           access_token: this.props.user.access_token
         }
       }));
 
       if (this.state.file.type.startsWith("image/")) { //m.image
-        this.uploadImage(upload_url, msg_url);
+        this.uploadImage(upload_url, msg_url, unsentMessages, roomId, msgId, this.props.setParentState);
       } else if (this.state.file.type.startsWith("video/")) { //m.video
-        this.uploadVideo(upload_url, msg_url);
+        this.uploadVideo(upload_url, msg_url, unsentMessages, roomId, msgId, this.props.setParentState);
       } else { //m.file
-        this.uploadFile(msg_url);
+        this.uploadFile(msg_url, unsentMessages, roomId, msgId, this.props.setParentState);
       }
     });
   },
 
-  uploadImage: function(upload_url, msg_url) {
+  uploadImage: function(upload_url, msg_url, unsentMessages, roomId, msgId, setParentState) {
     let thumbnailType = "image/png";
     let imageInfo;
 
     if (this.state.file.type == "image/jpeg") {
-        thumbnailType = "image/jpeg";
+      thumbnailType = "image/jpeg";
     }
 
     riot.loadImageElement(this.state.file).bind(this).then(function(img) {
@@ -61,10 +88,10 @@ let File = create ({
     }).then(function(result) {
       imageInfo = result.info;
       this.setState({info: imageInfo});
-      fetch(upload_url, {
+      rfetch(upload_url, {
         method: 'POST',
         body: result.thumbnail,
-      }).then(
+      }, options).then(
         response => response.json()
       ).then(response => {
         let info = this.state.info;
@@ -76,21 +103,36 @@ let File = create ({
           "url": this.state.url,
           "body": this.state.file.name,
           "info": info
-        }
+        };
 
-        fetch(msg_url, {
+        let roomUnsent = unsentMessages[roomId];
+        roomUnsent[msgId].sent = true;
+        roomUnsent[msgId].content.msgtype = "m.image";
+        roomUnsent[msgId].content.url = this.state.url;
+        roomUnsent[msgId].content.info = info;
+
+        unsentMessages[roomId] = roomUnsent;
+        setParentState("unsentMessages", unsentMessages);
+
+        rfetch(msg_url, {
           method: 'PUT',
           body: JSON.stringify(body),
           headers: new Headers({
             'Content-Type': 'application/json'
           })
-        }).then(res => res.json())
-        .catch(error => console.error('Error:', error))
-        .then(response => console.log('sent image event', response));
-    })});
+        }, options).then(res => res.json())
+          .catch((error) => console.error('Error:', error))
+          .then((response) => {
+            console.log('sent image event', response);
+            roomUnsent[msgId].id = response.event_id;
+            unsentMessages[roomId] = roomUnsent;
+            setParentState("unsentMessages", unsentMessages);
+          });
+      });
+    });
   },
 
-  uploadVideo: function(upload_url, msg_url) {
+  uploadVideo: function(upload_url, msg_url, unsentMessages, roomId, msgId, setParentState) {
     const thumbnailType = "image/jpeg";
     let videoInfo;
 
@@ -99,10 +141,10 @@ let File = create ({
     }).then(function(result) {
       videoInfo = result.info;
       this.setState({info: videoInfo});
-      fetch(upload_url, {
+      rfetch(upload_url, {
         method: 'POST',
         body: result.thumbnail,
-      }).then(
+      }, options).then(
         response => response.json()
       ).then((response) => {
         let info = this.state.info;
@@ -114,22 +156,36 @@ let File = create ({
           "url": this.state.url,
           "body": this.state.file.name,
           "info": info
-        }
+        };
 
-        fetch(msg_url, {
+        let roomUnsent = unsentMessages[roomId];
+        roomUnsent[msgId].sent = true;
+        roomUnsent[msgId].content.msgtype = "m.image";
+        roomUnsent[msgId].content.url = this.state.url;
+        roomUnsent[msgId].content.info = info;
+
+        unsentMessages[roomId] = roomUnsent;
+        setParentState("unsentMessages", unsentMessages);
+
+        rfetch(msg_url, {
           method: 'PUT',
           body: JSON.stringify(body),
           headers: new Headers({
             'Content-Type': 'application/json'
           })
-        }).then(res => res.json())
-        .catch(error => console.error('Error:', error))
-        .then(response => console.log('sent file event', response));
-      })
-    })
+        }, options).then(res => res.json())
+          .catch((error) => console.error('Error:', error))
+          .then((response) => {
+            console.log('sent file event', response);
+            roomUnsent[msgId].id = response.event_id;
+            unsentMessages[roomId] = roomUnsent;
+            setParentState("unsentMessages", unsentMessages);
+          });
+      });
+    });
   },
 
-  uploadFile: function(msg_url) {
+  uploadFile: function(msg_url, unsentMessages, roomId, msgId, setParentState) {
     let body = {
       "msgtype": "m.file",
       "url": this.state.url,
@@ -137,24 +193,39 @@ let File = create ({
       "info": {
         "mimetype": this.state.file.type
       }
-    }
+    };
 
-    fetch(msg_url, {
+    let roomUnsent = unsentMessages[roomId];
+    roomUnsent[msgId].sent = true;
+    roomUnsent[msgId].content.msgtype = "m.image";
+    roomUnsent[msgId].content.url = this.state.url;
+    roomUnsent[msgId].content.info = info;
+
+    unsentMessages[roomId] = roomUnsent;
+    setParentState("unsentMessages", unsentMessages);
+
+
+    rfetch(msg_url, {
       method: 'PUT',
       body: JSON.stringify(body),
       headers: new Headers({
         'Content-Type': 'application/json'
       })
-    }).then(res => res.json())
-    .catch(error => console.error('Error:', error))
-    .then(response => console.log('sent file event', response));
+    }, options).then(res => res.json())
+      .catch(error => console.error('Error:', error))
+      .then((response) => {
+        console.log('sent file event', response);
+        roomUnsent[msgId].id = response.event_id;
+        unsentMessages[roomId] = roomUnsent;
+        setParentState("unsentMessages", unsentMessages);
+      });
   },
 
   render: function() {
     return (
       <input id="attachment" type="file"/>
-    )
+    );
   }
-})
+});
 
 module.exports = File;
