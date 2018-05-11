@@ -27,6 +27,11 @@ Get the source from either of the git repos:
 then run `npm install` to get all the dependencies, and compile with `npm run build`  
 
 ### more information here:
-[matrix room](https://matrix.to/#/#neo_client:matrix.org)  
+Room, bridged:  
+`#neo_client:matrix.org`  
+`#neo:disroot.org`  
+`##neo` on freenode  
+https://t.me/joinchat/DRrEl1MS-6g0sCs2255UTA  
+
 [telegram channel](https://t.me/neo_client)  
 [todo list](https://pad.lain.haus/pOyNngluQGuxFnl17awPKQ)  
