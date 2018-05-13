@@ -467,10 +467,14 @@ let RoomEntry = create({
     }
 
     let textual = Event.asText(this.props.lastEvent);
+    let classes = this.props.active ? "active" : "";
+    if (this.props.notif.unread > 0) {
+      classes += "wrapUnread";
+    }
     return (
       <div
         id="room_item"
-        className={this.props.active ? "active" : ""}
+        className={classes}
         onClick={this.switchRoom}>
         <img
           id="avatar"

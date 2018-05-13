@@ -256,13 +256,13 @@ html, body {
         padding-top: 4px;
         padding-left: 85px;
         position: absolute;
-        width: calc(80% - 40px);
+        width: calc(100% - 100px);
         overflow: hidden;
+        text-overflow: "...";
         margin-top: 4px;
 
         span {
           margin-top: -4px;
-          display: inline-block;
           line-height: 20px;
           height: 20px;
           vertical-align: middle;
@@ -292,6 +292,7 @@ html, body {
           padding: 4px;
           font-size: 16px;
           min-width: 20px;
+          z-index: 2;
         }
       }
 
@@ -304,6 +305,10 @@ html, body {
           cursor: pointer;
         }
       }
+    }
+
+    .wrapUnread .last_msg {
+      width: calc(100% - 130px) !important;
     }
   }
 
