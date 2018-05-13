@@ -49,9 +49,13 @@ let File = create ({
     rfetch(upload_url, {
       method: 'POST',
       body: this.state.file,
+      headers: new Headers({
+        'Content-Type': this.state.file.type
+      })
     }, options).then(
       response => response.json()
     ).then(response => {
+      console.log(response);
       this.setState({"url": response.content_uri});
       let unixtime = Date.now();
 
@@ -186,6 +190,7 @@ let File = create ({
   },
 
   uploadFile: function(msg_url, unsentMessages, roomId, msgId, setParentState) {
+    console.log("uploading file", this.state.file.name);
     let body = {
       "msgtype": "m.file",
       "url": this.state.url,
@@ -199,7 +204,6 @@ let File = create ({
     roomUnsent[msgId].sent = true;
     roomUnsent[msgId].content.msgtype = "m.image";
     roomUnsent[msgId].content.url = this.state.url;
-    roomUnsent[msgId].content.info = info;
 
     unsentMessages[roomId] = roomUnsent;
     setParentState("unsentMessages", unsentMessages);

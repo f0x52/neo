@@ -41,7 +41,7 @@ module.exports = {
         }),
       },
       {
-        test: /\.(png|jpg|gif|svg|ttf)$/,
+        test: /\.(png|jpg|gif|css|svg|ttf)$/,
         use: [
           {
             loader: 'file-loader',
@@ -52,7 +52,7 @@ module.exports = {
         ],
       },
       {
-      test: /\.scss/,
+        test: /\.scss/,
         use: [
           'style-loader',
           {

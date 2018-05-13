@@ -236,7 +236,7 @@ html, body {
       padding: 5px;
       position: relative;
 
-      img {
+      #avatar {
         object-fit: cover;
         position: absolute;
         left: 10px;
@@ -253,12 +253,27 @@ html, body {
 
       .last_msg {
         white-space: nowrap;
-        padding: 10px;
-        padding-top: 0;
+        padding-top: 4px;
         padding-left: 85px;
         position: absolute;
         width: calc(80% - 40px);
         overflow: hidden;
+        margin-top: 4px;
+
+        span {
+          margin-top: -4px;
+          display: inline-block;
+          line-height: 20px;
+          height: 20px;
+          vertical-align: middle;
+
+          .icon {
+            line-height: 20px;
+            height: 20px;
+            margin-top: -4px;
+            vertical-align: text-bottom;
+          }
+        }
       }
 
       .align_right {

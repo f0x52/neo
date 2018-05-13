@@ -1,10 +1,12 @@
 'use strict';
 
-//const React = require("react");
+const React = require("react");
+const SVG = require("react-inlinesvg").default;
 //const create = require("create-react-class");
 //const Promise = require('bluebird');
 //const urllib = require('url');
 
+const icons = require('./icons.js');
 
 module.exports = {
   asText: function(event) {
@@ -18,22 +20,25 @@ module.exports = {
     if (event.type == "m.room.message") {
       let type = "";
       if (event.content.msgtype == "m.notice") {
-        type = "(notice)";
+        type = icons.notice;
       } else if (event.content.msgtype == "m.emote") {
-        type = `* ${event.sender} `;
+        type = <React.Fragment>{icons.action} {event.sender} </React.Fragment>;
       } else if (event.content.msgtype == "m.image") {
-        type = "[image]"; //replace with symbol
+        type = icons.image;
       } else if (event.content.msgtype == "m.video") {
-        type = "[video]";
+        type = icons.video;
       } else if (event.content.msgtype == "m.file") {
-        type = "[file]";
+        type = icons.file;
       } else if (event.content.msgtype == "m.location") {
         type = "[location]";
       } else if (event.content.msgtype == "m.audio") {
         type = "[audio]";
       }
 
-      return `${type} ${event.content.body}`;
+      //return `${type} ${event.content.body}`;
+      return (
+        <span>{type} {event.content.body}</span>
+      );
     } else if (event.type == "m.room.member") {
       let action = "";
       let reason = "";
@@ -54,7 +59,7 @@ module.exports = {
         action = "banned " + event.state_key;
       } 
       else {
-        action = "did something, open issue at github.com/f0x52/neo/issues, full event in console";
+        action = "did something, please open an issue at github.com/f0x52/neo/issues, full event in console";
         console.log(event);
       }
 

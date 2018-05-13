@@ -473,6 +473,7 @@ let RoomEntry = create({
         className={this.props.active ? "active" : ""}
         onClick={this.switchRoom}>
         <img
+          id="avatar"
           height="70px"
           width="70px"
           src={this.state.img}
