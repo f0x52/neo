@@ -111,6 +111,7 @@ let Menu = create({
   },
 
   logout: function() {
+    localStorage.setItem("logout", "true");
     this.props.setParentState("menu", false);
     this.props.logout();
   },

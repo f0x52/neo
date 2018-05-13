@@ -50,7 +50,7 @@ let App = create({
     let rooms = {};
     let messages = {};
     let invites = {};
-    if(localStorage.getItem("version") == VERSION) {
+    if(localStorage.getItem("version") == VERSION && localStorage.getItem("logout") != "true") {
       user = JSON.parse(localStorage.getItem("user"));
       userinfo = JSON.parse(localStorage.getItem("userinfo"));
       invites = JSON.parse(localStorage.getItem("invites"));
@@ -90,6 +90,7 @@ let App = create({
       }
     };
     localStorage.setItem("version", VERSION);
+    localStorage.setItem("logout", "false");
     localStorage.setItem("user", JSON.stringify(json));
     localStorage.setItem("invites", "{}");
     this.setState({
@@ -836,22 +837,19 @@ let Login = create({
         'content-type': 'application/json'
       },
       method: 'POST',
-    }, options).then((response) => {
-      if (!response.ok) {
-        throw Error(response.statusText);
-      }
-      return response.json();
-    }).then((responseJson) => {
-      this.setState({json: responseJson});
-      if(responseJson.access_token != undefined) {
-        this.props.loginCallback(responseJson);
-      }
-      this.props.setParentState("loading", 0);
-    }).catch((error) => {
-      this.setState({json: {error: "Error contacting homeserver"}});
-      console.error(error);
-      this.props.setParentState("loading", 0);
-    });
+    }, options).then((response) => response.json())
+      .then((responseJson) => {
+        this.setState({json: responseJson});
+        if(responseJson.access_token != undefined) {
+          this.props.loginCallback(responseJson);
+        }
+        this.props.setParentState("loading", 0);
+      })
+      .catch((error) => {
+        this.setState({json: {error: "Error contacting homeserver"}});
+        console.error(error);
+        this.props.setParentState("loading", 0);
+      });
   }
 });
 
@@ -1355,7 +1353,7 @@ function image(container, src, thumb, h, w) {
       <a target="_blank" href={src}>
         <img
           src={thumb}
-          style={{maxHeight: newHeight, newWidth: newWidth}}
+          style={{maxHeight: newHeight, maxWidth: newWidth}}
         />
       </a>
     </div>
