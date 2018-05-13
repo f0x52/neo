@@ -5,6 +5,7 @@ const create = require("create-react-class");
 const Promise = require('bluebird');
 const urllib = require('url');
 
+let Event = require('./Events.js');
 let debounce = require('debounce');
 let blank = require('../../assets/blank.jpg');
 //let neo = require('../../assets/neo.png');
@@ -464,6 +465,8 @@ let RoomEntry = create({
     if (this.props.notif.highlight > 0) {
       unread_count = "@";
     }
+
+    let textual = Event.asText(this.props.lastEvent);
     return (
       <div
         id="room_item"
@@ -487,7 +490,7 @@ let RoomEntry = create({
           }
         </span>
         <span className="last_msg">
-          <b>{user}:</b> {this.props.lastEvent.content.body}
+          <b>{user}:</b> {textual}
         </span>
       </div>
     );

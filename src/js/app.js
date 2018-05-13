@@ -21,6 +21,7 @@ let options = {retries: 5, retryDelay: 200};
 // Components
 let File = require('./components/fileUpload');
 let RoomList = require('./components/roomList');
+let Event = require('./components/Events.js');
 
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
@@ -1021,36 +1022,10 @@ let Messages = create({
           />
         );
       } else if (event.type == "m.room.member") {
-        let action = "";
-        let reason = "";
-        if (event.content.membership) {
-          event.membership = event.content.membership;
-        }
-        switch (event.membership) {
-          case "leave":
-            action = "left";
-            break;
-          case "join":
-            action = "joined";
-            break;
-          case "invite":
-            action = "invited " + event.state_key;
-            break;
-          case "ban":
-            action = "banned " + event.state_key;
-            break;
-          default:
-            action = "did something";
-            console.log(event);
-            break;
-        }
-
-        if (event.content != undefined && event.content.reason != undefined) {
-          reason = "reason: " + event.content.reason;
-        }
+        let text = Event.asText(event);
         return (
           <div className="line member" key={event.event_id}>
-            {event.sender} {action} {reason}
+            {text}
           </div>
         );
       }
