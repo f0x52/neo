@@ -299,6 +299,7 @@ html, body {
     .message_window_split {
       display: flex;
       overflow-y: auto;
+      height: 100%:
 
       .message_window, .userlist {
         overflow-y: auto;
