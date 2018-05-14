@@ -343,6 +343,30 @@ html, body {
       .userlist {
         overflow-x: hidden;
         max-width: 15vw;
+
+        .user {
+          height: 48px;
+          padding: 6px;
+          padding-left: 5px;
+
+          #avatar {
+            height: 48px;
+            width: 48px;
+          }
+          .username {
+            vertical-align: middle;
+            display: inline-block;
+            color: darken($fg, 25);
+            overflow: hidden;
+            text-overflow: '...';
+            width: calc(100% - 58px);
+
+            b {
+              white-space: nowrap;
+              color: $fg;
+            }
+          }
+        }
       }
     }
 

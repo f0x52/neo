@@ -269,7 +269,6 @@ let App = create({
               64,
               64
             );
-            //remoteUser.img = blank;
           }
           remoteUsers[userId] = remoteUser;
         });
@@ -584,7 +583,7 @@ let Send = create({
     if (event.keyCode == 9) {
       event.preventDefault();
     }
-    if (this.state.completions.length > 1) {
+    if (this.state.completions == undefined || this.state.completions.length > 1) {
       if (event.keyCode == 38 || event.keyCode == 40) {
         event.preventDefault();
       }
@@ -864,7 +863,8 @@ let Room = create({
   getInitialState: function() {
     return({
       scroll: {},
-      element: null
+      element: null,
+      userPagination: 32,
     });
   },
 
@@ -893,9 +893,22 @@ let Room = create({
       clientHeight: this.state.element.clientHeight
     });
   },
+
+  userlistScroll: function(e) {
+    let object = e.target;
+    if (object.scrollHeight - object.scrollTop - object.clientHeight < 100) {
+      let userPagination = this.state.userPagination + 50;
+      this.setState({
+        userPagination: userPagination
+      });
+    }
+  },
   
   componentDidUpdate: function() {
     if (this.props.room != this.state.lastRoom) {
+      this.setState({
+        userPagination: 32
+      });
       if (this.state.scroll[this.props.room] != undefined) {
         let scrollProps = this.state.scroll[this.props.room];
         if (scrollProps.scrollHeight - scrollProps.scrollTop - scrollProps.clientHeight < 100) {
@@ -931,11 +944,16 @@ let Room = create({
         return null;
       }
       let sortedUsers = Object.keys(users).sort(sortByUsername);
-      userlist = sortedUsers.map((userId) => {
+      let paginatedUsers = sortedUsers.slice(0, this.state.userPagination);
+      userlist = paginatedUsers.map((userId) => {
         return (
-          <span key={userId}>
-            {users[userId].display_name}<br/>
-          </span>
+          <div key={userId} className="user">
+            <img id="avatar" src={users[userId].img}/>
+            <span className="username">
+              <b>{users[userId].display_name}</b><br/>
+              {userId}
+            </span>
+          </div>
         );
       });
     }
@@ -956,7 +974,7 @@ let Room = create({
             unsentMessages={this.props.unsentMessages}
           />
         </div>
-        <div className="userlist">
+        <div className="userlist" onScroll={this.userlistScroll}>
           {userlist}
         </div>
       </div>
