@@ -1168,11 +1168,13 @@ let Message = create({
         this.props.event.content.info.thumbnail_url != undefined) {
         thumb = m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url);
       }
-      media = <video
-        src={m_download(this.props.user.hs, this.props.event.content.url)}
-        poster={thumb}
-        controls
-      ></video>;
+      media = video(
+        this.state.ref,
+        m_download(this.props.user.hs, this.props.event.content.url),
+        thumb,
+        this.props.event.content.info.thumbnail_info.h,
+        this.props.event.content.info.thumbnail_info.w
+      );
       
     } else if (this.props.event.content.msgtype == "m.file") {
       media = <a
@@ -1355,6 +1357,37 @@ function image(container, src, thumb, h, w) {
         />
       </a>
     </div>
+  );
+}
+
+function video(container, src, thumb, h, w) {
+  if (container == null) {
+    return null;
+  }
+
+  let newHeight;
+  let newWidth;
+
+  let maxHeight = 600;
+  let maxWidth = container.clientWidth - 70;
+
+  let hRatio = maxHeight/h;
+  let wRatio = maxWidth/w;
+
+  if (hRatio <= wRatio) {
+    newHeight = maxHeight;
+  }
+  if (hRatio >= wRatio) {
+    newWidth = maxWidth;
+  }
+
+  return(
+    <video
+      src={src}
+      poster={thumb}
+      controls
+      style={{maxHeight: newHeight, maxWidth: newWidth}}
+    ></video>
   );
 }
 
