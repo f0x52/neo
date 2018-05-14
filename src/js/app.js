@@ -1139,13 +1139,13 @@ let Message = create({
       classArray += " media";
       if (this.props.event.content.info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
-        media = image(this.state.ref, url, url);
+        media = displayMedia("image", this.state.ref, url, url);
       } else if (this.props.event.content.info.thumbnail_info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
         if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
-          media = image(this.state.ref, url, url, this.props.event.content.info.h, this.props.event.content.info.w);
+          media = displayMedia("image", this.state.ref, url, url, this.props.event.content.info.h, this.props.event.content.info.w);
         } else {
-          media = image(this.state.ref, url, url);
+          media = displayMedia("image", this.state.ref, url, url);
         }
       } else {
         media_width = this.props.event.content.info.thumbnail_info.w;
@@ -1154,7 +1154,8 @@ let Message = create({
           media_url = this.props.event.content.url;
         }
 
-        media = image(
+        media = displayMedia(
+          "image",
           this.state.ref,
           m_download(this.props.user.hs, this.props.event.content.url),
           m_download(this.props.user.hs, media_url),
@@ -1168,7 +1169,8 @@ let Message = create({
         this.props.event.content.info.thumbnail_url != undefined) {
         thumb = m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url);
       }
-      media = video(
+      media = displayMedia(
+        "video",
         this.state.ref,
         m_download(this.props.user.hs, this.props.event.content.url),
         thumb,
@@ -1327,7 +1329,7 @@ function sortByUsername(a, b) {
   return 0;
 }
 
-function image(container, src, thumb, h, w) {
+function displayMedia(type, container, src, thumb, h, w) {
   if (container == null) {
     return null;
   }
@@ -1348,47 +1350,27 @@ function image(container, src, thumb, h, w) {
     newWidth = maxWidth;
   }
 
-  return(
-    <div>
-      <a target="_blank" href={src}>
-        <img
-          src={thumb}
-          style={{maxHeight: newHeight, maxWidth: newWidth}}
-        />
-      </a>
-    </div>
-  );
-}
-
-function video(container, src, thumb, h, w) {
-  if (container == null) {
-    return null;
+  if (type == "image") {
+    return(
+      <div>
+        <a target="_blank" href={src}>
+          <img
+            src={thumb}
+            style={{maxHeight: newHeight, maxWidth: newWidth}}
+          />
+        </a>
+      </div>
+    );
+  } else if (type == "video") {
+    return(
+      <video
+        src={src}
+        poster={thumb}
+        controls
+        style={{maxHeight: newHeight, maxWidth: newWidth}}
+      ></video>
+    );
   }
-
-  let newHeight;
-  let newWidth;
-
-  let maxHeight = 600;
-  let maxWidth = container.clientWidth - 70;
-
-  let hRatio = maxHeight/h;
-  let wRatio = maxWidth/w;
-
-  if (hRatio <= wRatio) {
-    newHeight = maxHeight;
-  }
-  if (hRatio >= wRatio) {
-    newWidth = maxWidth;
-  }
-
-  return(
-    <video
-      src={src}
-      poster={thumb}
-      controls
-      style={{maxHeight: newHeight, maxWidth: newWidth}}
-    ></video>
-  );
 }
 
 function getCompletion(list, str) {
