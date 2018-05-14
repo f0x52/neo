@@ -265,7 +265,6 @@ html, body {
           margin-top: -4px;
           line-height: 20px;
           height: 20px;
-          vertical-align: middle;
 
           .icon {
             line-height: 20px;
@@ -304,6 +303,17 @@ html, body {
           margin-right: 5px;
           cursor: pointer;
         }
+      }
+    }
+
+    #invite_item {
+      #name {
+        padding-bottom: 0;
+      }
+
+      .last_msg {
+        margin-top: 0;
+        padding-top: 0;
       }
     }
 

@@ -581,8 +581,13 @@ let Send = create({
   },
 
   tabComplete: function(event) {
-    if (event.keyCode == 9 || event.keyCode == 38 || event.keyCode == 40) {
+    if (event.keyCode == 9) {
       event.preventDefault();
+    }
+    if (this.state.completions.length > 1) {
+      if (event.keyCode == 38 || event.keyCode == 40) {
+        event.preventDefault();
+      }
     }
     setTimeout(() => {
       let content = event.target.value;

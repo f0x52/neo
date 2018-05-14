@@ -354,6 +354,7 @@ let InviteEntry = create({
       <div
         id="invite_item">
         <img
+          id="avatar"
           height="70px"
           width="70px"
           src={this.props.invite.avatar}
