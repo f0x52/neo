@@ -39,7 +39,7 @@ module.exports = {
         type = "[audio]";
       }
 
-      return <span>{`${type} ${event.content.body}`}</span>;
+      return <span>{type} {event.content.body}</span>;
     } else if (event.type == "m.room.member") {
       let action = "";
       let reason = "";

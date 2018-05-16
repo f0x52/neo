@@ -36,6 +36,13 @@ html, body {
   }
 }
 
+.icon {
+  line-height: 20px;
+  height: 20px;
+  margin-top: -4px;
+  vertical-align: text-bottom;
+}
+
 #settings, #join {
   position: absolute;
   background: $bg;
@@ -265,13 +272,6 @@ html, body {
           margin-top: -4px;
           line-height: 20px;
           height: 20px;
-
-          .icon {
-            line-height: 20px;
-            height: 20px;
-            margin-top: -4px;
-            vertical-align: text-bottom;
-          }
         }
       }
 

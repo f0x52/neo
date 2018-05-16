@@ -46,6 +46,11 @@ a:hover {
   }
 }
 
+.icon {
+  stroke: $fg;
+  fill: $fg;
+}
+
 #join {
   input {
     color: $fg;
@@ -91,10 +96,6 @@ a:hover {
       border: 1px solid lighten($bg, 2);
       border-bottom: none;
 
-      .icon {
-        stroke: $fg;
-        fill: $fg;
-      }
     }
 
     #invite_item {

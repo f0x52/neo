@@ -1231,7 +1231,12 @@ let Message = create({
         h = this.props.event.content.info.thumbnail_info.h;
         w = this.props.event.content.info.thumbnail_info.w;
       } else {
-        h = 1000;
+        h = 600;
+        if (this.state.ref == undefined) {
+          w = 500;
+        } else {
+          w = this.state.ref.clientWidth - 70;
+        }
       }
 
       media = displayMedia(
