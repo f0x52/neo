@@ -518,6 +518,7 @@ let App = create({
             userinfo={this.state.userinfo}
             get_userinfo={this.get_userinfo}
             unsentMessages={this.state.unsentMessages}
+            setParentState={this.setStateFromChild}
           />
           <div className="input">
             <Send
@@ -526,6 +527,8 @@ let App = create({
               user={this.state.user}
               setParentState={this.setStateFromChild}
               unsentMessages={this.state.unsentMessages}
+              replyId={this.state.replyId}
+              reply={this.state.messages[this.state.room]}
             />
           </div>
         </React.Fragment>
@@ -696,18 +699,37 @@ let Send = create({
         origin_server_ts: Date.now()
       };
 
+      let body = {
+        "msgtype": "m.text",
+        "body": msg
+      };
+
+      if (this.props.replyId) {
+        roomUnsent[msgId]["m.relates_to"] = {
+          "m.in_reply_to": {
+            "event_id": this.props.replyId
+          }
+        };
+
+        body = {
+          "msgtype": "m.text",
+          "body": msg,
+          "m.relates_to": {
+            "m.in_reply_to": {
+              event_id: this.props.replyId
+            }
+          }
+        };
+      }
+
       this.setState({
         count: this.state.count+1
       });
-      
+
       unsentMessages[roomId] = roomUnsent;
       this.props.setParentState("unsentMessages", unsentMessages);
 
-      let body = {
-        "msgtype": "m.text",
-        "body": msg,
-      };
-
+      this.props.setParentState("replyId", undefined);
       rfetch(url, {
         method: 'PUT',
         body: JSON.stringify(body),
@@ -732,6 +754,7 @@ let Send = create({
 
   render: function() {
     let completions;
+    let replyTo;
     if (this.state.completions != undefined && this.state.completions.length > 0) {
       completions = (
         <div className="completions">
@@ -750,7 +773,18 @@ let Send = create({
             })
           }
         </div>);
+    } else if (this.props.replyId) {
+      let replyEvent = this.props.reply.find((event) => {
+        return event.event_id === this.props.replyId;
+      });
+
+      replyTo = (
+        <div className="reply">
+          {replyEvent.content.body}
+        </div>
+      );
     }
+
     return (
       <div className="compose">
         <label htmlFor="attachment">
@@ -763,6 +797,7 @@ let Send = create({
           unsentMessages={this.props.unsentMessages}
           setParentState={this.props.setParentState}
         />
+        {replyTo}
         {completions}
         <textarea
           id="text"
@@ -898,6 +933,10 @@ let Room = create({
     let object = e.target;
     if (object.scrollHeight - object.scrollTop - object.clientHeight < 100) {
       let userPagination = this.state.userPagination + 50;
+      let userListLength = Object.keys(this.props.rooms[this.props.room].users).length;
+      if (userPagination > userListLength) {
+        userPagination = userListLength;
+      }
       this.setState({
         userPagination: userPagination
       });
@@ -964,7 +1003,9 @@ let Room = create({
             backlog={this.props.backlog}
             messages={this.props.messages}
             room={this.props.room}
+            rooms={this.props.rooms}
             user={this.props.user}
+            users={this.props.users}
             scrollToBottom={this.scrollToBottom}
             getScroll={this.getScroll}
             onScroll={this.onScroll}
@@ -972,6 +1013,8 @@ let Room = create({
             userinfo={this.props.userinfo}
             get_userinfo={this.props.get_userinfo}
             unsentMessages={this.props.unsentMessages}
+            setReply={this.props.setReply}
+            setParentState={this.props.setParentState}
           />
         </div>
         <div className="userlist" onScroll={this.userlistScroll}>
@@ -1020,18 +1063,26 @@ let Messages = create({
           this.props.get_userinfo(event.sender);
         }
 
-        while (this.props.messages[next_event] != undefined &&
-          this.props.messages[next_event].sender == event.sender &&
-          this.props.messages[next_event].type == "m.room.message" &&
-          (this.props.messages[next_event].content.msgtype == "m.text" ||
-            this.props.messages[next_event].content.msgtype == "m.notice" ) &&
-          (this.props.messages[next_event].origin_server_ts -
-            event.origin_server_ts < 300000) && //max 5 min older
-          this.props.messages[next_event].grouped != 1) {
-          this.props.messages[next_event].grouped = 1;
-          event.content.body += "\n" + this.props.messages[next_event].content.body;
-          next_event++;
+        let replyEvent;
+        if (event.content["m.relates_to"] != null &&
+          event.content["m.relates_to"]["m.in_reply_to"] != null) {
+          replyEvent = this.props.messages.find(function(e) {
+            return e.event_id === event.content["m.relates_to"]["m.in_reply_to"].event_id;
+          });
         }
+
+        //while (this.props.messages[next_event] != undefined &&
+        //  this.props.messages[next_event].sender == event.sender &&
+        //  this.props.messages[next_event].type == "m.room.message" &&
+        //  (this.props.messages[next_event].content.msgtype == "m.text" ||
+        //    this.props.messages[next_event].content.msgtype == "m.notice" ) &&
+        //  (this.props.messages[next_event].origin_server_ts -
+        //    event.origin_server_ts < 300000) && //max 5 min older
+        //  this.props.messages[next_event].grouped != 1) {
+        //  this.props.messages[next_event].grouped = 1;
+        //  event.content.body += "\n" + this.props.messages[next_event].content.body;
+        //  next_event++;
+        //}
 
         return (
           <Message
@@ -1042,6 +1093,10 @@ let Messages = create({
             source={event.sender == this.props.user.user_id ? "out" : "in"}
             group="no"
             user={this.props.user}
+            replyTo={replyEvent}
+            event_id={event.event_id}
+            users={this.props.rooms[this.props.room].users}
+            setParentState={this.props.setParentState}
           />
         );
       } else if (event.type == "m.room.member") {
@@ -1169,13 +1224,23 @@ let Message = create({
         this.props.event.content.info.thumbnail_url != undefined) {
         thumb = m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url);
       }
+      let h;
+      let w;
+
+      if (this.props.event.content.info.thumbnail_info != undefined) {
+        h = this.props.event.content.info.thumbnail_info.h;
+        w = this.props.event.content.info.thumbnail_info.w;
+      } else {
+        h = 1000;
+      }
+
       media = displayMedia(
         "video",
         this.state.ref,
         m_download(this.props.user.hs, this.props.event.content.url),
         thumb,
-        this.props.event.content.info.thumbnail_info.h,
-        this.props.event.content.info.thumbnail_info.w
+        h,
+        w
       );
       
     } else if (this.props.event.content.msgtype == "m.file") {
@@ -1196,8 +1261,24 @@ let Message = create({
       return null;
     }
 
+    let replyContent;
+    if (this.props.replyTo != undefined) {
+      this.props.replyTo.reply = true;
+      replyContent = (
+        <div className="replyTo">
+          <b id="reply">{this.props.users[this.props.replyTo.sender].display_name}</b>
+          {Event.asText(this.props.replyTo)}
+        </div>
+      );
+      let doubleNewlineIndex = this.props.event.content.body.indexOf("\n\n"); //breaks on specific messages with two /n/n
+      this.props.event.content.body = this.props.event.content.body.substr(doubleNewlineIndex+1);
+    }
+
     let content = (
       this.props.event.content.body.split('\n').map((item, key) => {
+        if (item.trim() == "") {
+          return null;
+        }
         let items = item.split(" ").map((str, key) => {
           let returnVal = str + " ";
           highlights.some((highlight) => {
@@ -1216,7 +1297,7 @@ let Message = create({
       })
     );
 
-    let link = <Linkify component={LinkInfo} properties={{user: this.props.user}}>
+    let link = <Linkify component={LinkInfo} properties={{user: this.props.user, sRef: this.state.ref}}>
       {content}
     </Linkify>;
 
@@ -1225,7 +1306,8 @@ let Message = create({
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
-            <b>{this.props.info.display_name}</b>
+            <b>{this.props.info.display_name} <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.event_id);}}>Reply</span></b>
+            {replyContent}
             {media}
             <div className="flex">
               <p>
@@ -1279,10 +1361,11 @@ let LinkInfo = create({
 
   render: function() {
     if (this.state.img) {
+      //<img className="link" src={this.state.img} style={{minHeight: this.state.h, minWidth: this.state.w}}/>
       return(
         <span>
           <a href={this.props.href} target="_blank">{this.props.children}</a><br/>
-          <img className="link" src={this.state.img} style={{minHeight: this.state.h, minWidth: this.state.w}}/>
+          {displayMedia("inline-image", this.props.sRef, this.state.img, this.state.img, this.state.h, this.state.w, "link")}
         </span>
       );
     }
@@ -1329,7 +1412,7 @@ function sortByUsername(a, b) {
   return 0;
 }
 
-function displayMedia(type, container, src, thumb, h, w) {
+function displayMedia(type, container, src, thumb, h, w, className) {
   if (container == null) {
     return null;
   }
@@ -1357,9 +1440,18 @@ function displayMedia(type, container, src, thumb, h, w) {
           <img
             src={thumb}
             style={{maxHeight: newHeight, maxWidth: newWidth}}
+            className={className}
           />
         </a>
       </div>
+    );
+  } else if (type == "inline-image") {
+    return(
+      <img
+        src={thumb}
+        style={{maxHeight: newHeight, maxWidth: newWidth}}
+        className={className}
+      />
     );
   } else if (type == "video") {
     return(

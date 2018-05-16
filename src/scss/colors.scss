@@ -4,6 +4,7 @@ $anim_color: #fff;
 
 $red: #bd2929;
 $green: #2dbd29;
+$blue: #298bbc;
 
 .light {
   display: none;
@@ -136,6 +137,10 @@ a:hover {
     .messages {
       .message {
         background-color: lighten($bg, 4);
+
+        .replyTo {
+          border-left: 3px solid $blue;
+        }
 
         .timestamp {
           color: darken($fg, 45);

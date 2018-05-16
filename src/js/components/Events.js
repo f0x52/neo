@@ -1,7 +1,6 @@
 'use strict';
 
 const React = require("react");
-const SVG = require("react-inlinesvg").default;
 //const create = require("create-react-class");
 //const Promise = require('bluebird');
 //const urllib = require('url');
@@ -15,6 +14,11 @@ module.exports = {
         event.content.msgtype == undefined)) {
       console.log(event);
       return "please open an issue at github.com/f0x52/neo/issues, full event in console";
+    }
+
+    if (event.reply) {
+      let doubleNewlineIndex = event.content.body.indexOf("\n\n")+1; //breaks on specific messages with two /n/n
+      event.content.body = event.content.body.substr(doubleNewlineIndex);
     }
 
     if (event.type == "m.room.message") {
@@ -35,10 +39,7 @@ module.exports = {
         type = "[audio]";
       }
 
-      //return `${type} ${event.content.body}`;
-      return (
-        <span>{type} {event.content.body}</span>
-      );
+      return <span>{`${type} ${event.content.body}`}</span>;
     } else if (event.type == "m.room.member") {
       let action = "";
       let reason = "";
