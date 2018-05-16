@@ -43,6 +43,10 @@ html, body {
   vertical-align: text-bottom;
 }
 
+.onclick {
+  cursor: pointer;
+}
+
 #settings, #join {
   position: absolute;
   background: $bg;
@@ -557,6 +561,19 @@ html, body {
               line-height: 40px;
               vertical-align: middle;
             }
+          }
+        }
+
+        .reply {
+          padding-bottom: 12px;
+
+          .replyIcon {
+            padding-right: 5px;
+          }
+
+          .close {
+            right: 16px;
+            position: absolute;
           }
         }
 

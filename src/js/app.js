@@ -43,6 +43,8 @@ let icon = {
   }
 };
 
+const icons = require('./components/icons.js');
+
 let App = create({
   displayName: "App",
   getInitialState: function() {
@@ -711,9 +713,15 @@ let Send = create({
           }
         };
 
+        let replyEvent = this.props.reply.find((event) => {
+          return event.event_id === this.props.replyId;
+        });
+
+        let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
+
         body = {
           "msgtype": "m.text",
-          "body": msg,
+          "body": fallback_msg,
           "m.relates_to": {
             "m.in_reply_to": {
               event_id: this.props.replyId
@@ -780,7 +788,13 @@ let Send = create({
 
       replyTo = (
         <div className="reply">
-          {replyEvent.content.body}
+          <span className="replyIcon">
+            {icons.reply}
+          </span>
+          {Event.asText(replyEvent)}
+          <span className="onclick close" onClick={() => this.props.setParentState("replyId", undefined)}>
+            {icons.close}
+          </span>
         </div>
       );
     }
