@@ -718,10 +718,13 @@ let Send = create({
         });
 
         let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
+        let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${msg}`;
 
         body = {
           "msgtype": "m.text",
           "body": fallback_msg,
+          "format": "org.matrix.custom.html",
+          "formatted_body": fallback_html,
           "m.relates_to": {
             "m.in_reply_to": {
               event_id: this.props.replyId
@@ -1072,6 +1075,11 @@ let Messages = create({
       let event = this.props.messages[event_num];
       let next_event = parseInt(event_num)+1;
 
+      if (event.type == "m.sticker") { //ugly hack
+        event.type = "m.room.message";
+        event.content.msgtype = "m.sticker";
+      }
+
       if (event.grouped != 1 && event.type == "m.room.message") {
         if (this.props.userinfo[event.sender] == undefined) {
           this.props.get_userinfo(event.sender);
@@ -1130,6 +1138,15 @@ let Messages = create({
     if (roomUnsent != {}) {
       let unsent = Object.keys(roomUnsent).map((eventId) => {
         let event = roomUnsent[eventId];
+
+        let replyEvent;
+        if (event.content["m.relates_to"] != null &&
+          event.content["m.relates_to"]["m.in_reply_to"] != null) {
+          replyEvent = this.props.messages.find(function(e) {
+            return e.event_id === event.content["m.relates_to"]["m.in_reply_to"].event_id;
+          });
+        }
+
         return (
           <Message
             key={eventId}
@@ -1138,6 +1155,10 @@ let Messages = create({
             group="no"
             user={this.props.user}
             sent={event.sent}
+            replyTo={replyEvent}
+            event_id={event.event_id}
+            users={this.props.rooms[this.props.room].users}
+            setParentState={this.props.setParentState}
           />
         );
       });
@@ -1204,7 +1225,14 @@ let Message = create({
 
     let media = "";
     let media_width = "";
-    if (this.props.event.content.msgtype == "m.image") {
+  
+    let eventBody = this.props.event.content.body;
+
+    if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.sticker") {
+      if (this.props.event.content.msgtype == "m.sticker") {
+        eventBody = "";
+      }
+
       classArray += " media";
       if (this.props.event.content.info == undefined) {
         let url = m_download(this.props.user.hs, this.props.event.content.url);
@@ -1294,7 +1322,7 @@ let Message = create({
     }
 
     let content = (
-      this.props.event.content.body.split('\n').map((item, key) => {
+      eventBody.split('\n').map((item, key) => {
         if (item.trim() == "") {
           return null;
         }

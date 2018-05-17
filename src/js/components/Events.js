@@ -11,7 +11,7 @@ module.exports = {
   asText: function(event) {
     if (event.content == undefined ||
       (event.content.membership == undefined &&
-        event.content.msgtype == undefined)) {
+        event.content.msgtype == undefined && event.type != "m.sticker")) {
       console.log(event);
       return "please open an issue at github.com/f0x52/neo/issues, full event in console";
     }
@@ -37,6 +37,10 @@ module.exports = {
         type = "[location]";
       } else if (event.content.msgtype == "m.audio") {
         type = "[audio]";
+      } else if (event.content.msgtype == "m.sticker") {
+        let bodyParts = event.content.body.split(" ");
+        let emoji = bodyParts[0];
+        return <span>{emoji} Sticker</span>;
       }
 
       return <span>{type} {event.content.body}</span>;
@@ -68,6 +72,10 @@ module.exports = {
         reason = "reason: " + event.content.reason;
       }
       return (`${event.sender} ${action} ${reason}`);
+    } else if (event.type == "m.sticker") { // for the future, not needed with current hack
+      let bodyParts = event.content.body.split(" ");
+      let emoji = bodyParts[0];
+      return <span>{emoji} Sticker</span>;
     }
   }
 };
