@@ -80,7 +80,6 @@ let App = create({
   },
 
   loginCallback: function(json) {
-    json.hs = urllib.parse("https://" + json.home_server);
     this.get_userinfo(json.user_id, json);
     json.username = json.user_id.split(':')[0].substr(1);
     json.settings = {
@@ -898,6 +897,7 @@ let Login = create({
       .then((responseJson) => {
         this.setState({json: responseJson});
         if(responseJson.access_token != undefined) {
+          responseJson.hs = homeserver;
           this.props.loginCallback(responseJson);
         }
         this.props.setParentState("loading", 0);
