@@ -22,12 +22,13 @@ let options = {retries: 5, retryDelay: 200};
 let File = require('./components/fileUpload');
 let RoomList = require('./components/roomList');
 let Event = require('./components/Events.js');
+let Matrix = require('./components/Matrix.js');
 
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.03-dev6";
+let VERSION = "alpha0.05-dev";
 
 let icon = {
   file: {
@@ -163,127 +164,24 @@ let App = create({
   },
 
   initialSync: function() {
-    let url = urllib.format(Object.assign({}, this.state.user.hs, {
-      pathname: "/_matrix/client/r0/joined_rooms",
-      query: {
-        access_token: this.state.user.access_token
-      }
-    }));
-
-    rfetch(url, options)
-      .then((response) => response.json())
-      .catch((error) => {
-        console.error('Error:', error);
-        this.initialSync(); //retry
-      })
-      .then((responseJson) => {
-        Promise.map(responseJson.joined_rooms, (roomId) => {
-          // Get backlog
-          url = urllib.format(Object.assign({}, this.state.user.hs, {
-            pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
-            query: {
-              limit: 80,
-              dir: "b",
-              access_token: this.state.user.access_token
-            }
-          }));
-
-          return rfetch(url, options)
-            .then((response) => response.json())
-            .then((responseJson) => {
-              return this.backlog(roomId, responseJson);
-            });
-        }).then(() => {
-          console.log("neo: done getting all backlog/userlists");
-          this.sync();
-        });
+    Matrix.initialSyncRequest(this.state.user).then((localRooms) => {
+      this.setState({
+        rooms: localRooms
       });
-  },
-
-  backlog: function(roomId, responseJson) {
-    let messages = this.state.messages;
-    let localRooms = this.state.rooms;
-    let remoteRoom = responseJson.chunk;
-
-    let combinedMessages = this.addMessages(roomId, remoteRoom);
-    messages[roomId] = combinedMessages;
-
-    messages[roomId] = combinedMessages;
-
-    function findLast(array, predicate) {
-      return array.slice().reverse().find(predicate);
-    }
-
-    if (localRooms[roomId] == null) {
-      localRooms[roomId] = {};
-    }
-
-    localRooms[roomId].lastMessage = findLast(combinedMessages, (message) => {
-      return (message.content.body != null);
-    });
-
-    localRooms[roomId].lastMessage = defaultValue(
-      localRooms[roomId].lastMessage,
-      combinedMessages[combinedMessages.length - 1]
-    );
-
-    if (localRooms[roomId].lastMessage == undefined) {
-      console.log(responseJson, roomId);
-      localRooms[roomId].lastMessage = {
-        origin_server_ts: 0,
-        content: {
-          body: ""
-        }
-      };
-    }
-
-    localRooms[roomId].notif = {unread: 0, highlight: 0};
-    return this.userList(roomId, localRooms, messages);
-  },
-
-  userList: function(roomId, localRooms, messages) {
-    //Thanks git merge for breaking this
-    //get Userlist
-    let url = urllib.format(Object.assign({}, this.state.user.hs, {
-      pathname: `/_matrix/client/r0/rooms/${roomId}/joined_members`,
-      query: {
-        access_token: this.state.user.access_token
-      }
-    }));
-
-    return rfetch(url, options)
-      .then((response) => response.json())
-      .then((responseJson) => {
-        let remoteUsers = responseJson.joined;
-
-        Object.keys(remoteUsers).forEach((userId) => { //Really slow
-          let remoteUser = remoteUsers[userId];
-          if (remoteUser.display_name == undefined) {
-            remoteUser.display_name = userId;
-          }
-          if (remoteUser.avatar_url == undefined) {
-            remoteUser.img = blank;
-          } else { 
-            remoteUser.img = m_thumbnail(
-              this.state.user.hs,
-              remoteUser.avatar_url,
-              64,
-              64
-            );
-          }
-          remoteUsers[userId] = remoteUser;
-        });
-
-        localRooms[roomId].users = remoteUsers;
-        this.setState({
-          rooms: localRooms,
-          messages: messages
-        });
-        console.log("neo: done getting userlist for", roomId);
-      });
+      this.sync();
+    }); //retry on fail
   },
 
   sync: function() {
+    Matrix.syncRequest(this.state.user, this.state.rooms, this.state.invites).then((syncedRooms) => {
+      this.setState({
+        rooms: syncedRooms[0],
+        invites: syncedRooms[1]
+      });
+    });
+  },
+
+  oldsync: function() {
     let url = Object.assign({}, this.state.user.hs, {
       pathname: "/_matrix/client/r0/sync",
       query: {
@@ -512,7 +410,6 @@ let App = create({
         <React.Fragment>
           <Room
             backlog={this.getBacklog}
-            messages={this.state.messages[this.state.room]}
             room={this.state.room}
             rooms={this.state.rooms}
             user={this.state.user}
@@ -1018,7 +915,6 @@ let Room = create({
         <div className={className} id="message_window" ref={this.setRef}>
           <Messages
             backlog={this.props.backlog}
-            messages={this.props.messages}
             room={this.props.room}
             rooms={this.props.rooms}
             user={this.props.user}
@@ -1068,12 +964,15 @@ let Messages = create({
   },
 
   render: function() {
-    if (this.props.room == 0 || this.props.messages == undefined) {
+    let events = this.props.rooms[this.props.room].events;
+    if (this.props.room == 0 || events == undefined) {
       return null;
     }
-    let messages = Object.keys(this.props.messages).map((event_num) => {
-      let event = this.props.messages[event_num];
-      let next_event = parseInt(event_num)+1;
+
+    let eventIndex = this.props.rooms[this.props.room].eventIndex;
+    let messages = eventIndex.map((eventId) => {
+      let event = events[eventId];
+      //let next_event = parseInt(event_num)+1;
 
       if (event.type == "m.sticker") { //ugly hack
         event.type = "m.room.message";
@@ -1088,9 +987,8 @@ let Messages = create({
         let replyEvent;
         if (event.content["m.relates_to"] != null &&
           event.content["m.relates_to"]["m.in_reply_to"] != null) {
-          replyEvent = this.props.messages.find(function(e) {
-            return e.event_id === event.content["m.relates_to"]["m.in_reply_to"].event_id;
-          });
+          let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
+          replyEvent = events[replyId];
         }
 
         //while (this.props.messages[next_event] != undefined &&

@@ -13,7 +13,8 @@ module.exports = {
       (event.content.membership == undefined &&
         event.content.msgtype == undefined && event.type != "m.sticker")) {
       console.log(event);
-      return "please open an issue at github.com/f0x52/neo/issues, full event in console";
+      //return "please open an issue at github.com/f0x52/neo/issues, full event in console";
+      return null;
     }
 
     if (event.reply) {
@@ -77,6 +78,8 @@ module.exports = {
       let emoji = bodyParts[0];
       return <span>{emoji} Sticker</span>;
     }
+
+    return null;
   }
 };
 

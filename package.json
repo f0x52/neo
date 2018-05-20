@@ -37,6 +37,7 @@
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-inlinesvg": "^0.8.1",
-    "react-linkify": "^0.2.2"
+    "react-linkify": "^0.2.2",
+    "react-virtualized": "^9.19.0"
   }
 }

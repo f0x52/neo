@@ -37,12 +37,12 @@ let List = create({
     let rooms = this.props.rooms;
     let sortedRooms = Object.keys(rooms).sort(
       function(a, b) {
-        return rooms[b].lastMessage.origin_server_ts - rooms[a].lastMessage.origin_server_ts;
+        return rooms[b].lastEvent.origin_server_ts - rooms[a].lastEvent.origin_server_ts;
       }
     );
     let list = sortedRooms.map((roomid) =>
       <RoomEntry
-        lastEvent={rooms[roomid].lastMessage}
+        lastEvent={rooms[roomid].lastEvent}
         rooms={rooms}
         active={this.props.room == roomid}
         key={roomid}
