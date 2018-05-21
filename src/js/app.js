@@ -178,6 +178,7 @@ let App = create({
         rooms: syncedRooms[0],
         invites: syncedRooms[1]
       });
+      setTimeout(this.sync(), 200);
     });
   },
 
