@@ -37,6 +37,7 @@ module.exports = {
             roomInfoArray.forEach((roomInfo) => {
               localRooms[roomInfo[0]] = roomInfo[1];
               localRooms[roomInfo[0]].users = roomInfo[2];
+              localRooms[roomInfo[0]].unsentEvents = {};
             });
 
             console.log("neo: done getting all backlog/userlists");
@@ -241,6 +242,10 @@ module.exports = {
   },
 
   updateUnsent: function(combinedEvents, unsentEvents) {
+    let unsentEventsKeys = Object.keys(unsentEvents);
+    if (unsentEventsKeys.length == 0) {
+      return;
+    }
     Object.keys(unsentEvents).forEach((eventId) => {
       let unsentEvent = unsentEvents[eventId];
       if (combinedEvents[unsentEvent.id] != undefined) {
@@ -276,24 +281,6 @@ module.exports = {
       localInvites[inviteId] = {display_name: name, avatar: avatar, invitedBy: invitedBy};
     });
     return localInvites;
-  },
-
-  deduplicateLocalEcho: function(roomId, roomEvents, unsentEvents) {
-    if (Object.keys(unsentEvents).length > 0) {
-      let stillUnsentKeys = Object.keys(unsentEvents).filter((msgId) => {
-        let val = unsentEvents[msgId];
-        if (val.sent && roomEvents[val.id] != null) {
-          return false;
-        }
-        return true;
-      });
-
-      let updatedUnsent = {};
-      stillUnsentKeys.forEach((key) => {
-        updatedUnsent[key] = unsentEvents[key];
-      });
-      return unsentEvents;
-    }
   },
 
   m_thumbnail: function(hs, mxc, w, h) {

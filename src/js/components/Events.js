@@ -8,7 +8,7 @@ module.exports = {
     if (event.content == undefined ||
       (event.content.membership == undefined &&
         event.content.msgtype == undefined && event.type != "m.sticker")) {
-      console.log(event);
+      //console.log(event);
       //return "please open an issue at github.com/f0x52/neo/issues, full event in console";
       return null;
     }

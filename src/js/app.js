@@ -52,7 +52,6 @@ let App = create({
     let user = {};
     let userinfo = {};
     let rooms = {};
-    let messages = {};
     let invites = {};
     if(localStorage.getItem("version") == VERSION && localStorage.getItem("logout") != "true") {
       user = JSON.parse(localStorage.getItem("user"));
@@ -63,11 +62,9 @@ let App = create({
     return({
       user: user,
       userinfo: userinfo,
-      unsentMessages: {},
       rooms: rooms,
       invites: invites,
       handledInvites: {},
-      messages: messages,
       loading: 0,
       room: 0,
       backlog: 0
@@ -262,7 +259,6 @@ let App = create({
             user={this.state.user}
             userinfo={this.state.userinfo}
             get_userinfo={this.get_userinfo}
-            unsentMessages={this.state.unsentMessages}
             setParentState={this.setStateFromChild}
           />
           <div className="input">
@@ -271,7 +267,6 @@ let App = create({
               rooms={this.state.rooms}
               user={this.state.user}
               setParentState={this.setStateFromChild}
-              unsentMessages={this.state.unsentMessages}
               replyId={this.state.replyId}
             />
           </div>
@@ -422,85 +417,87 @@ let Send = create({
       return;
     }
     let textarea = this.state.ref;
-    if(textarea.value != "") {
-      let msg = textarea.value.replace(/^\s+|\s+$/g, '');
-      textarea.value = "";
-      let unixtime = Date.now();
-
-      let url = urllib.format(Object.assign({}, this.props.user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${this.props.room}/send/m.room.message/${unixtime}`,
-        query: {
-          access_token: this.props.user.access_token
-        }
-      }));
-
-      let msgId = this.state.count;
-      let roomId = this.props.room;
-      let unsentMessages = this.props.unsentMessages;
-      let roomUnsent = defaultValue(unsentMessages[roomId], {});
-      roomUnsent[msgId] = {
-        content: {body: msg},
-        origin_server_ts: Date.now()
-      };
-
-      let body = {
-        "msgtype": "m.text",
-        "body": msg
-      };
-
-      if (this.props.replyId) {
-        roomUnsent[msgId]["m.relates_to"] = {
-          "m.in_reply_to": {
-            "event_id": this.props.replyId
-          }
-        };
-
-        let replyEvent = this.props.rooms[this.props.room].events[this.props.replyId];
-
-        let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
-        let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${msg}`;
-
-        body = {
-          "msgtype": "m.text",
-          "body": fallback_msg,
-          "format": "org.matrix.custom.html",
-          "formatted_body": fallback_html,
-          "m.relates_to": {
-            "m.in_reply_to": {
-              event_id: this.props.replyId
-            }
-          }
-        };
-      }
-
-      this.setState({
-        count: this.state.count+1
-      });
-
-      unsentMessages[roomId] = roomUnsent;
-      this.props.setParentState("unsentMessages", unsentMessages);
-
-      this.props.setParentState("replyId", undefined);
-      rfetch(url, {
-        method: 'PUT',
-        body: JSON.stringify(body),
-        headers: new Headers({
-          'Content-Type': 'application/json'
-        })
-      }, options).then(res => res.json())
-        .catch(error => console.error('Error:', error))
-        .then(response => {
-          let unsentMessages = this.props.unsentMessages;
-          let roomUnsent = unsentMessages[roomId];
-          console.log('Success:', response);
-          roomUnsent[msgId].sent = true;
-          roomUnsent[msgId].id = response.event_id;
-          unsentMessages[roomId] = roomUnsent;
-          this.props.setParentState("unsentMessages", unsentMessages);
-        });
+    if(textarea.value == "") {
+      return;
     }
+    let msg = textarea.value.replace(/^\s+|\s+$/g, '');
     textarea.value = "";
-    this.resize_textarea();
+    let unixtime = Date.now();
+
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${this.props.room}/send/m.room.message/${unixtime}`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    let msgId = this.state.count;
+    let rooms = this.props.rooms;
+    let roomId = this.props.room;
+    let room = rooms[roomId];
+    let roomUnsent = defaultValue(room.unsentEvents, {});
+    roomUnsent[msgId] = {
+      content: {body: msg},
+      origin_server_ts: Date.now()
+    };
+
+    let body = {
+      "msgtype": "m.text",
+      "body": msg
+    };
+
+    if (this.props.replyId) {
+      roomUnsent[msgId].content["m.relates_to"] = {
+        "m.in_reply_to": {
+          "event_id": this.props.replyId
+        }
+      };
+
+      let replyEvent = this.props.rooms[this.props.room].events[this.props.replyId];
+
+      let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
+      let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${msg}`;
+
+      body = {
+        "msgtype": "m.text",
+        "body": fallback_msg,
+        "format": "org.matrix.custom.html",
+        "formatted_body": fallback_html,
+        "m.relates_to": {
+          "m.in_reply_to": {
+            event_id: this.props.replyId
+          }
+        }
+      };
+    }
+
+    this.setState({
+      count: this.state.count+1
+    });
+
+    room.unsentEvents = roomUnsent;
+    rooms[roomId] = room;
+    this.props.setParentState("rooms", rooms);
+
+    this.props.setParentState("replyId", undefined);
+    rfetch(url, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    }, options).then(res => res.json())
+      .catch(error => console.error('Error:', error))
+      .then(response => {
+        let roomUnsent = this.props.rooms[roomId].unsentEvents;
+        console.log('Success:', response);
+        roomUnsent[msgId].sent = true;
+        roomUnsent[msgId].id = response.event_id;
+
+        room.unsentEvents = roomUnsent;
+        rooms[roomId] = room;
+        this.props.setParentState("rooms", rooms);
+      });
   },
 
   render: function() {
@@ -549,7 +546,7 @@ let Send = create({
         <File
           room={this.props.room}
           user={this.props.user}
-          unsentMessages={this.props.unsentMessages}
+          unsentEvents={this.props.unsentEvents}
           setParentState={this.props.setParentState}
         />
         {replyTo}
@@ -767,7 +764,7 @@ let Room = create({
             scroll={scroll}
             userinfo={this.props.userinfo}
             get_userinfo={this.props.get_userinfo}
-            unsentMessages={this.props.unsentMessages}
+            unsentEvents={this.props.unsentEvents}
             setReply={this.props.setReply}
             setParentState={this.props.setParentState}
           />
@@ -873,19 +870,20 @@ let Messages = create({
     });
 
     let unsentWrap;
-    let unsentMessages = this.props.unsentMessages;
-    let roomUnsent = defaultValue(unsentMessages[this.props.room], {});
-    if (roomUnsent != {}) {
-      let unsent = Object.keys(roomUnsent).map((eventId) => {
+    let roomUnsent = defaultValue(this.props.rooms[this.props.room].unsentEvents, {});
+    let roomUnsentKeys = Object.keys(roomUnsent);
+    if (roomUnsentKeys.length > 0) {
+      let unsent = roomUnsentKeys.map((eventId) => {
         let event = roomUnsent[eventId];
+
 
         let replyEvent;
         if (event.content["m.relates_to"] != null &&
           event.content["m.relates_to"]["m.in_reply_to"] != null) {
-          replyEvent = this.props.messages.find(function(e) {
-            return e.event_id === event.content["m.relates_to"]["m.in_reply_to"].event_id;
-          });
+          let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
+          replyEvent = events[replyId];
         }
+
 
         return (
           <Message
