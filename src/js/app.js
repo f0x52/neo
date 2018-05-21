@@ -426,7 +426,6 @@ let App = create({
               setParentState={this.setStateFromChild}
               unsentMessages={this.state.unsentMessages}
               replyId={this.state.replyId}
-              reply={this.state.messages[this.state.room]}
             />
           </div>
         </React.Fragment>
@@ -609,9 +608,7 @@ let Send = create({
           }
         };
 
-        let replyEvent = this.props.reply.find((event) => {
-          return event.event_id === this.props.replyId;
-        });
+        let replyEvent = this.props.rooms[this.props.room].events[this.props.replyId];
 
         let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
         let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${msg}`;
@@ -681,9 +678,7 @@ let Send = create({
           }
         </div>);
     } else if (this.props.replyId) {
-      let replyEvent = this.props.reply.find((event) => {
-        return event.event_id === this.props.replyId;
-      });
+      let replyEvent = this.props.rooms[this.props.room].events[this.props.replyId];
 
       replyTo = (
         <div className="reply">
@@ -1054,7 +1049,7 @@ let Messages = create({
             user={this.props.user}
             sent={event.sent}
             replyTo={replyEvent}
-            event_id={event.event_id}
+            event_id={eventId}
             users={this.props.rooms[this.props.room].users}
             setParentState={this.props.setParentState}
           />
