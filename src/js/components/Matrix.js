@@ -6,6 +6,7 @@ const rfetch = require('fetch-retry');
 const Event = require('./Events.js');
 const defaultValue = require('default-value');
 const Promise = require('bluebird');
+const uniq = require('arr-uniq');
 
 const options = {retries: 5, retryDelay: 200};
 
@@ -196,10 +197,12 @@ module.exports = {
     let sortedEventIndex = eventIndex.sort(function(a, b) {
       return combinedEvents[a].origin_server_ts-combinedEvents[b].origin_server_ts;
     });
+
+    let uniqueEventIndex = uniq(sortedEventIndex);
     
     room = Object.assign(room, {
       events: combinedEvents,
-      eventIndex: sortedEventIndex
+      eventIndex: uniqueEventIndex
     });
 
     let lastEvent = {
