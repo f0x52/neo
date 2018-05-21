@@ -1373,6 +1373,11 @@ function displayMedia(type, container, src, thumb, h, w, className) {
     newWidth = maxWidth;
   }
 
+  if (h == undefined && w == undefined) {
+    newHeight = maxHeight;
+    newWidth = maxWidth;
+  }
+
   if (type == "image") {
     return(
       <div>
