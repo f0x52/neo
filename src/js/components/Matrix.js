@@ -72,7 +72,12 @@ module.exports = {
           reject(error);
         })
         .then((responseJson) => {
-          let newEvents = responseJson.chunk;
+          let chunk = responseJson.chunk;
+          let newEvents = {};
+          chunk.forEach((event) => {
+            newEvents[event.event_id] = event;
+          });
+          
           let localRoom = this.parseEvents({}, newEvents);
 
           localRoom.notif = {unread: 0, highlight: 0};

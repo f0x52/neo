@@ -1294,7 +1294,6 @@ let LinkInfo = create({
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) {
-          //link is just an image
           this.setState({
             img: m_download(this.props.user.hs, responseJson["og:image"]),
             h: responseJson["og:image:height"],
