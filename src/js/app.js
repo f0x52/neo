@@ -1212,7 +1212,7 @@ let Message = create({
         </div>
       );
       let doubleNewlineIndex = this.props.event.content.body.indexOf("\n\n"); //breaks on specific messages with two /n/n
-      this.props.event.content.body = this.props.event.content.body.substr(doubleNewlineIndex+1);
+      eventBody = this.props.event.content.body.substr(doubleNewlineIndex+1);
     }
 
     let content = (
