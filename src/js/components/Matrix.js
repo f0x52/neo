@@ -77,7 +77,7 @@ module.exports = {
           chunk.forEach((event) => {
             newEvents[event.event_id] = event;
           });
-          
+
           let localRoom = this.parseEvents({}, newEvents);
 
           localRoom.notif = {unread: 0, highlight: 0};
@@ -157,6 +157,12 @@ module.exports = {
           let remoteRooms = responseJson.rooms.join;
 
           Object.keys(remoteRooms).forEach((roomId) => {
+            if (localRooms[roomId] == undefined) {
+              this.getRoomInfo(user, roomId) //TODO: save backlog as well
+                .then((infoArray) => {
+                  localRooms[roomId].users = infoArray[2];
+                });
+            }
             let room = defaultValue(localRooms[roomId], {});
             let remoteRoom = remoteRooms[roomId];
 
@@ -217,7 +223,10 @@ module.exports = {
       }
     };
 
-    sortedEventIndex.slice().reverse().some((eventId) => {
+    let unsentEvents = defaultValue(room.unsentEvents, {});
+    let updatedUnsentEvents = this.updateUnsent(combinedEvents, unsentEvents);
+
+    uniqueEventIndex.slice().reverse().some((eventId) => {
       let event = combinedEvents[eventId];
       if (Event.asText(event) != null) {
         lastEvent = event;
@@ -227,7 +236,18 @@ module.exports = {
     });
 
     room.lastEvent = lastEvent;
+    room.unsentEvents = updatedUnsentEvents;
     return room;
+  },
+
+  updateUnsent: function(combinedEvents, unsentEvents) {
+    Object.keys(unsentEvents).forEach((eventId) => {
+      let unsentEvent = unsentEvents[eventId];
+      if (combinedEvents[unsentEvent.id] != undefined) {
+        delete unsentEvents[eventId];
+      }
+    });
+    return unsentEvents;
   },
 
   parseInvites: function(user, invites, remoteInvites) {
@@ -243,18 +263,14 @@ module.exports = {
 
       Object.keys(remoteInvite.invite_state.events).forEach((eventId) => {
         let event = remoteInvite.invite_state.events[eventId];
-        switch(event.type) {
-          case "m.room.name": // Should fallback to alias/pm username
-            name = event.content.name;
-            break;
-          case "m.room.avatar":
-            avatar = this.m_download(user.hs, event.content.url);
-            break;
-          case "m.room.member":
-            if (event.content.membership == "invite") {
-              invitedBy = event.sender;
-            }
-            break;
+        if (event.type == "m.room.name") {
+          name = event.content.name; //Should fallback to alias/pm username
+        } else if (event.type == "m.room.avatar") {
+          avatar = this.m_download(user.hs, event.content.url);
+        } else if (event.type == "m.room.member") {
+          if (event.content.membership == "invite") {
+            invitedBy = event.sender;
+          }
         }
       });
       localInvites[inviteId] = {display_name: name, avatar: avatar, invitedBy: invitedBy};

@@ -1,10 +1,6 @@
 'use strict';
 
 const React = require("react");
-//const create = require("create-react-class");
-//const Promise = require('bluebird');
-//const urllib = require('url');
-
 const icons = require('./icons.js');
 
 module.exports = {
