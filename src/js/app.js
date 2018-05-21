@@ -545,6 +545,7 @@ let Send = create({
         </label>
         <File
           room={this.props.room}
+          rooms={this.props.rooms}
           user={this.props.user}
           unsentEvents={this.props.unsentEvents}
           setParentState={this.props.setParentState}

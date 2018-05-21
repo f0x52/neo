@@ -32,8 +32,9 @@ let File = create ({
     }));
 
     let msgId = this.state.count;
-    let unsentMessages = this.props.unsentMessages;
-    let roomUnsent = defaultValue(unsentMessages[roomId], {});
+    let rooms = this.props.rooms;
+    let room = rooms[roomId];
+    let roomUnsent = defaultValue(room.unsentEvents, {});
     roomUnsent[msgId] = {
       content: {body: this.state.file.name},
       origin_server_ts: Date.now()
@@ -43,8 +44,10 @@ let File = create ({
       count: this.state.count+1
     });
     
-    unsentMessages[roomId] = roomUnsent;
-    this.props.setParentState("unsentMessages", unsentMessages);
+    room.unsentEvents = roomUnsent;
+    rooms[roomId] = room;
+    this.props.setParentState("rooms", rooms);
+
 
     rfetch(upload_url, {
       method: 'POST',
@@ -67,16 +70,16 @@ let File = create ({
       }));
 
       if (this.state.file.type.startsWith("image/")) { //m.image
-        this.uploadImage(upload_url, msg_url, unsentMessages, roomId, msgId, this.props.setParentState);
+        this.uploadImage(upload_url, msg_url, rooms, roomId, msgId, this.props.setParentState);
       } else if (this.state.file.type.startsWith("video/")) { //m.video
-        this.uploadVideo(upload_url, msg_url, unsentMessages, roomId, msgId, this.props.setParentState);
+        this.uploadVideo(upload_url, msg_url, rooms, roomId, msgId, this.props.setParentState);
       } else { //m.file
-        this.uploadFile(msg_url, unsentMessages, roomId, msgId, this.props.setParentState);
+        this.uploadFile(msg_url, rooms, roomId, msgId, this.props.setParentState);
       }
     });
   },
 
-  uploadImage: function(upload_url, msg_url, unsentMessages, roomId, msgId, setParentState) {
+  uploadImage: function(upload_url, msg_url, rooms, roomId, msgId, setParentState) {
     let thumbnailType = "image/png";
     let imageInfo;
 
@@ -109,14 +112,17 @@ let File = create ({
           "info": info
         };
 
-        let roomUnsent = unsentMessages[roomId];
+        let room = rooms[roomId];
+        let roomUnsent = defaultValue(room.unsentEvents, {});
+
         roomUnsent[msgId].sent = true;
         roomUnsent[msgId].content.msgtype = "m.image";
         roomUnsent[msgId].content.url = this.state.url;
         roomUnsent[msgId].content.info = info;
 
-        unsentMessages[roomId] = roomUnsent;
-        setParentState("unsentMessages", unsentMessages);
+        room.unsentEvents = roomUnsent;
+        rooms[roomId] = room;
+        setParentState("rooms", rooms);
 
         rfetch(msg_url, {
           method: 'PUT',
@@ -129,14 +135,16 @@ let File = create ({
           .then((response) => {
             console.log('sent image event', response);
             roomUnsent[msgId].id = response.event_id;
-            unsentMessages[roomId] = roomUnsent;
-            setParentState("unsentMessages", unsentMessages);
+
+            room.unsentEvents = roomUnsent;
+            rooms[roomId] = room;
+            setParentState("rooms", rooms);
           });
       });
     });
   },
 
-  uploadVideo: function(upload_url, msg_url, unsentMessages, roomId, msgId, setParentState) {
+  uploadVideo: function(upload_url, msg_url, rooms, roomId, msgId, setParentState) {
     const thumbnailType = "image/jpeg";
     let videoInfo;
 
@@ -162,14 +170,17 @@ let File = create ({
           "info": info
         };
 
-        let roomUnsent = unsentMessages[roomId];
+        let room = rooms[roomId];
+        let roomUnsent = defaultValue(room.unsentEvents, {});
+
         roomUnsent[msgId].sent = true;
-        roomUnsent[msgId].content.msgtype = "m.image";
+        roomUnsent[msgId].content.msgtype = "m.video";
         roomUnsent[msgId].content.url = this.state.url;
         roomUnsent[msgId].content.info = info;
 
-        unsentMessages[roomId] = roomUnsent;
-        setParentState("unsentMessages", unsentMessages);
+        room.unsentEvents = roomUnsent;
+        rooms[roomId] = room;
+        setParentState("rooms", rooms);
 
         rfetch(msg_url, {
           method: 'PUT',
@@ -182,14 +193,16 @@ let File = create ({
           .then((response) => {
             console.log('sent file event', response);
             roomUnsent[msgId].id = response.event_id;
-            unsentMessages[roomId] = roomUnsent;
-            setParentState("unsentMessages", unsentMessages);
+
+            room.unsentEvents = roomUnsent;
+            rooms[roomId] = room;
+            setParentState("rooms", rooms);
           });
       });
     });
   },
 
-  uploadFile: function(msg_url, unsentMessages, roomId, msgId, setParentState) {
+  uploadFile: function(msg_url, rooms, roomId, msgId, setParentState) {
     console.log("uploading file", this.state.file.name);
     let body = {
       "msgtype": "m.file",
@@ -200,14 +213,17 @@ let File = create ({
       }
     };
 
-    let roomUnsent = unsentMessages[roomId];
+
+    let room = rooms[roomId];
+    let roomUnsent = defaultValue(room.unsentEvents, {});
+
     roomUnsent[msgId].sent = true;
-    roomUnsent[msgId].content.msgtype = "m.image";
+    roomUnsent[msgId].content.msgtype = "m.file";
     roomUnsent[msgId].content.url = this.state.url;
 
-    unsentMessages[roomId] = roomUnsent;
-    setParentState("unsentMessages", unsentMessages);
-
+    room.unsentEvents = roomUnsent;
+    rooms[roomId] = room;
+    setParentState("rooms", rooms);
 
     rfetch(msg_url, {
       method: 'PUT',
@@ -220,8 +236,10 @@ let File = create ({
       .then((response) => {
         console.log('sent file event', response);
         roomUnsent[msgId].id = response.event_id;
-        unsentMessages[roomId] = roomUnsent;
-        setParentState("unsentMessages", unsentMessages);
+
+        room.unsentEvents = roomUnsent;
+        rooms[roomId] = room;
+        setParentState("rooms", rooms);
       });
   },
 
