@@ -47,8 +47,8 @@ html, body {
   cursor: pointer;
 }
 
-#settings, #join {
-  position: absolute;
+#settings, #join, #mediaPreview {
+  position: fixed;
   background: $bg;
   z-index: 100;
   border-radius: 4px;
@@ -56,6 +56,83 @@ html, body {
 
   h1 {
     margin: 0;
+  }
+}
+
+#mediaPreview {
+  left: 35vw;
+  width: 30vw;
+  display: flex;
+  flex-direction: column;
+  top: 5vh;
+  max-height: 90vh;
+
+  .files {
+    max-height: calc(60vh - 30px);
+    flex: 1 1 auto;
+    overflow-y: auto;
+
+    .image, .file, {
+      position: relative;
+      padding: 10px;
+      margin: 10px;
+    }
+
+    .image {
+      img {
+        width: 100%;
+        max-height: 40vh;
+        object-fit: contain;
+        margin: 0 auto;
+        display: block;
+      }
+
+      .onclick {
+        right: 10px;
+        top: 10px;
+      }
+    }
+
+    .file {
+      height: 40px;
+
+      svg {
+        height: 40px;
+        width: auto;
+        padding: 4px;
+        vertical-align: middle;
+      }
+    }
+
+    .onclick {
+      position: absolute;
+      right: 5px;
+
+      svg {
+        height: 20px;
+        vertical-align: top;
+      }
+    }
+  }
+
+  .bottom {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    font-size: 110%;
+
+    input {
+      width: 100%;
+      margin-top: 10px;
+      margin-bottom: 20px;
+    }
+
+    span {
+      flex: 0 1 auto;
+      align-self: flex-end;
+      padding: 13px;
+      border-radius: 4px;
+    }
   }
 }
 

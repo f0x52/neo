@@ -70,8 +70,28 @@ a:hover {
   .input {
     input {
       border-color: white;
-      background: transparent;
+      background: $bg;
       color: white;
+    }
+  }
+}
+
+#mediaPreview {
+  .files {
+    .image, .file {
+      background-color: lighten($bg, 6);
+    }
+  }
+
+  .bottom {
+    input {
+      background: $bg;
+      border: none;
+      border-bottom: 2px solid lighten($bg, 30);
+    }
+  
+    span {
+      background: lighten($bg, 10);
     }
   }
 }
