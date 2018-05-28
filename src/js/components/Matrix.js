@@ -33,16 +33,36 @@ module.exports = {
           Promise.map(responseJson.joined_rooms, (roomId) => {
             // Get backlog and userlist for all rooms
             return this.getRoomInfo(user, roomId);
-          }).then((roomInfoArray) => {
-            roomInfoArray.forEach((roomInfo) => {
-              localRooms[roomInfo[0]] = roomInfo[1];
-              localRooms[roomInfo[0]].users = roomInfo[2];
-              localRooms[roomInfo[0]].unsentEvents = {};
-            });
+          })
+            .then((roomInfoArray) => {
+              let roomDetails = Promise.map(roomInfoArray, (roomInfo) => {
+                let roomId = roomInfo[0];
+                let localUsers = roomInfo[2];
 
-            console.log("neo: done getting all backlog/userlists");
-            resolve(localRooms);
-          });
+                return Promise.all([
+                  roomInfo,
+                  this.getRoomDetails(user, roomId, localUsers)
+                ]);
+              })
+                .then((roomDetails) => {
+                  roomDetails.forEach((roomDetail) => {
+                    let roomInfo = roomDetail[0];
+                    let roomId = roomInfo[0];
+                    let localUsers = roomInfo[2];
+
+                    localRooms[roomId] = roomInfo[1];
+                    localRooms[roomId].users = localUsers;
+                    localRooms[roomId].unsentEvents = {};
+                    localRooms[roomId].info = {
+                      name: roomDetail[1][0],
+                      avatar: roomDetail[1][1]
+                    };
+                  });
+
+                  console.log("neo: done getting all backlog/userlists");
+                  resolve(localRooms);
+                });
+            });
         });
     });
   },
@@ -125,6 +145,76 @@ module.exports = {
             localUsers[userId] = remoteUser;
           });
           resolve(localUsers);
+        });
+    });
+  },
+
+  getRoomDetails: function(user, roomId, localUsers) {
+    return new Promise((resolve, reject) => {
+      let displayName = roomId;
+      let avatar = blank;
+
+      let localUsersKeys = Object.keys(localUsers);
+      if (localUsersKeys.length == 2) { //only one other person, so a pm
+        let otherUserId = localUsersKeys.filter((userId) => {
+          if (userId != user.user_id) {
+            return true;
+          }
+          return false;
+        })[0];
+        let otherUser = localUsers[otherUserId];
+        displayName = otherUser.display_name;
+        console.log(roomId, "is a pm with", displayName);
+        avatar = otherUser.img;
+      }
+
+      Promise.all([
+        this.getRoomName(user, roomId),
+        this.getRoomAvatar(user, roomId)
+      ])
+        .then((roomInfo) => {
+          let newDisplayName = defaultValue(roomInfo[0], displayName);
+          let newAvatar = defaultValue(roomInfo[1], avatar);
+          console.log("done getting roomDetails", newDisplayName, newAvatar);
+          resolve([newDisplayName, newAvatar]);
+        });
+    });
+  },
+
+  getRoomName: function(user, roomId) {
+    return new Promise((resolve, reject) => {
+      let nameUrl = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.name`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+
+      fetch(nameUrl)
+        .then(response => response.json()) //catch + reject
+        .then(responseJson => {
+          resolve(responseJson.name);
+        });
+    });
+  },
+
+  getRoomAvatar: function(user, roomId) {
+    return new Promise((resolve, reject) => {
+      let avatarUrl = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.avatar`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+      fetch(avatarUrl)
+        .then(response => response.json())
+        .then(responseJson => {
+          if(responseJson.errcode == undefined) {
+            resolve(this.m_download(user.hs, responseJson.url));
+          }
+          resolve(undefined);
         });
     });
   },
@@ -309,7 +399,7 @@ module.exports = {
           console.error('Error:', error);
           reject(error);
         })
-        .then((response) => resolve(response))
+        .then((response) => resolve(response));
     });
   },
 
@@ -338,7 +428,7 @@ module.exports = {
           console.error('Error:', error);
           reject(error);
         })
-        .then((response) => resolve(response))
+        .then((response) => resolve(response));
     });
   },
 

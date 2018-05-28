@@ -40,18 +40,19 @@ let List = create({
         return rooms[b].lastEvent.origin_server_ts - rooms[a].lastEvent.origin_server_ts;
       }
     );
-    let list = sortedRooms.map((roomid) =>
+    let list = sortedRooms.map((roomId) =>
       <RoomEntry
-        lastEvent={rooms[roomid].lastEvent}
+        lastEvent={rooms[roomId].lastEvent}
         rooms={rooms}
-        active={this.props.room == roomid}
-        key={roomid}
-        id={roomid}
+        roomId={roomId}
+        active={this.props.room == roomId}
+        key={roomId}
+        id={roomId}
         user={this.props.user}
         userinfo={this.props.userinfo}
         get_userinfo={this.props.get_userinfo}
         setParentState={this.props.setParentState}
-        notif={rooms[roomid].notif}
+        notif={rooms[roomId].notif}
       />
     );
 
@@ -377,50 +378,6 @@ let InviteEntry = create({
 
 let RoomEntry = create({
   displayName: "RoomEntry",
-  getInitialState: function() {
-    return ({
-      display_name: this.props.id,
-      img: blank,
-    });
-  },
-
-  componentDidMount: function() {
-    let url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.name`,
-      query: {
-        access_token: this.props.user.access_token
-      }
-    }));
-
-    fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if (responseJson.name != undefined) {
-          this.setState({display_name: responseJson.name});
-        }
-      });
-
-    url = urllib.format(Object.assign({}, this.props.user.hs, {
-      pathname: `/_matrix/client/r0/rooms/${this.props.id}/state/m.room.avatar`,
-      query: {
-        access_token: this.props.user.access_token
-      }
-    }));
-
-    fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        if(responseJson.errcode == undefined) {
-          let avatar_url = responseJson.url.substring(6);
-          this.setState({
-            img: urllib.format(Object.assign({}, this.props.user.hs, {
-              pathname: `/_matrix/media/r0/download/${avatar_url}`
-            }))
-          });
-        }
-      });
-  },
-
   switchRoom: function() {
     this.props.setParentState("room", this.props.id);
     let user = this.props.user;
@@ -472,6 +429,8 @@ let RoomEntry = create({
     if (this.props.notif.unread > 0) {
       classes += "wrapUnread";
     }
+
+    let currentRoomInfo = this.props.rooms[this.props.roomId].info;
     return (
       <div
         id="room_item"
@@ -481,11 +440,11 @@ let RoomEntry = create({
           id="avatar"
           height="70px"
           width="70px"
-          src={this.state.img}
+          src={currentRoomInfo.avatar}
           onError={(e)=>{e.target.src = blank;}}
         />
         <span id="name">
-          {this.state.display_name}
+          {currentRoomInfo.name}
         </span><br/>
         <span className="align_right">
           <span className="timestamp">
