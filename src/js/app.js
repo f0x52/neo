@@ -161,12 +161,14 @@ let App = create({
   },
 
   initialSync: function() {
-    Matrix.initialSyncRequest(this.state.user).then((localRooms) => {
-      this.setState({
-        rooms: localRooms
-      });
-      this.sync();
-    }); //retry on fail
+    Matrix.initialSyncRequest(this.state.user)
+      .then((localRooms) => {
+        this.setState({
+          rooms: localRooms
+        });
+
+        this.sync();
+      }); //retry on fail
   },
 
   sync: function() {

@@ -9,6 +9,8 @@ const rfetch = require('fetch-retry');
 let options = {retries: 5, retryDelay: 200};
 const icons = require('./icons.js');
 
+let Matrix = require('./Matrix.js');
+
 let File = create ({
   displayName: "fileUpload",
 
@@ -156,6 +158,7 @@ let File = create ({
       fileBody = caption;
     } else if (fileListKeys.length > 0) {
       //send m.text with caption
+      Matrix.sendEvent(this.props.user, roomId, caption);
     }
 
     fileListKeys.forEach((fileId) => {
@@ -188,8 +191,6 @@ let File = create ({
       let body;
       let fileMxId = taskResults[0].content_uri;
       let msgType = taskResults[1][0];
-      let thumbMxId = taskResults[1][1].content_uri;
-      let fileInfo = taskResults[1][2].info;
 
       if (msgType == "m.file") {
         body = {
@@ -200,32 +201,36 @@ let File = create ({
             "mimetype": mimeType
           }
         };
-      } else if (msgType == "m.image") {
-        let info = Object.assign({}, fileInfo, {
-          thumbnail_url: thumbMxId,
-          mimetype: mimeType
-        });
+      } else {
+        let thumbMxId = taskResults[1][1].content_uri;
+        let fileInfo = taskResults[1][2].info;
 
-        body = {
-          "msgtype": "m.image",
-          "url": fileMxId,
-          "body": fileBody,
-          "info": info
-        };
+        if (msgType == "m.image") {
+          let info = Object.assign({}, fileInfo, {
+            thumbnail_url: thumbMxId,
+            mimetype: mimeType
+          });
 
-      } else if (msgType == "m.video") {
-        let info = Object.assign({}, fileInfo, {
-          thumbnail_url: thumbMxId,
-          mimetype: mimeType
-        });
+          body = {
+            "msgtype": "m.image",
+            "url": fileMxId,
+            "body": fileBody,
+            "info": info
+          };
 
-        body = {
-          "msgtype": "m.video",
-          "url": fileMxId,
-          "body": fileBody,
-          "info": info
-        };
-      
+        } else if (msgType == "m.video") {
+          let info = Object.assign({}, fileInfo, {
+            thumbnail_url: thumbMxId,
+            mimetype: mimeType
+          });
+
+          body = {
+            "msgtype": "m.video",
+            "url": fileMxId,
+            "body": fileBody,
+            "info": info
+          };
+        }
       }
 
       rfetch(url, {

@@ -283,6 +283,65 @@ module.exports = {
     return localInvites;
   },
 
+  sendEvent: function(user, roomId, body) {
+    return new Promise((resolve, reject) => {
+      let unixtime = Date.now();
+      let url = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/send/m.room.message/${unixtime}`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+      body = {
+        msgtype: "m.text",
+        body: body
+      };
+
+      rfetch(url, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      }, options).then((res) => res.json())
+        .catch(error => {
+          console.error('Error:', error);
+          reject(error);
+        })
+        .then((response) => resolve(response))
+    });
+  },
+
+  kickUser: function(user, roomId, userId, reason) {
+    return new Promise((resolve, reject) => {
+      let url = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/kick`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+      let body = {
+        "reason": reason,
+        "user_id": userId
+      };
+
+      rfetch(url, {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      }, options).then((res) => res.json())
+        .catch(error => {
+          console.error('Error:', error);
+          reject(error);
+        })
+        .then((response) => resolve(response))
+    });
+  },
+
   m_thumbnail: function(hs, mxc, w, h) {
     return urllib.format(Object.assign({}, hs, {
       pathname: `/_matrix/media/r0/thumbnail/${mxc.substring(6)}`,
