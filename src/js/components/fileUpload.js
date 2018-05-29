@@ -91,8 +91,15 @@ let File = create ({
   cancel: function(fileId) {
     let fileList = this.state.fileList;
     delete fileList[fileId];
+    let dialog = true;
+    if (Object.keys(fileList).length == 0) {
+      let div = document.getElementsByClassName("darken")[0];
+      div.style = Object.assign(div.style, {zIndex: "-1", backgroundColor: "hsla(0, 0%, 0%, 0)"});
+      dialog = false;
+    }
     this.setState({
-      fileList: fileList
+      fileList: fileList,
+      dialog: dialog
     });
   },
 
