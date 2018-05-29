@@ -303,10 +303,10 @@ module.exports = {
 
             return new Promise((resolve, reject) => {
               if (localRoom == undefined) {
-                this.getRoomInfo(user, roomId)
+                 return this.getRoomInfo(user, roomId)
                   .then((infoArray) => {
                     let localUsers = infoArray[2];
-                    this.getRoomDetails(user, roomId, localUsers)
+                    return this.getRoomDetails(user, roomId, localUsers)
                       .then((roomDetails) => {
                         localRoom = infoArray[1];
                         localRoom.users = localUsers;
@@ -315,6 +315,7 @@ module.exports = {
                           name: roomDetails[0],
                           avatar: roomDetails[1]
                         };
+                        resolve(localRoom);
                       });
                   });
               }
