@@ -14,6 +14,7 @@ const blank = require('../../assets/blank.jpg');
 
 module.exports = {
   initialSyncRequest: function(user) {
+    console.log("neo: initialSyncRequest");
     return new Promise((resolve, reject) => {
       let localRooms = {};
       let url = urllib.format(Object.assign({}, user.hs, {
@@ -35,7 +36,7 @@ module.exports = {
             return this.getRoomInfo(user, roomId);
           })
             .then((roomInfoArray) => {
-              let roomDetails = Promise.map(roomInfoArray, (roomInfo) => {
+              Promise.map(roomInfoArray, (roomInfo) => {
                 let roomId = roomInfo[0];
                 let localUsers = roomInfo[2];
 
@@ -151,8 +152,8 @@ module.exports = {
 
   getRoomDetails: function(user, roomId, localUsers) {
     return new Promise((resolve, reject) => {
-      let displayName = roomId;
-      let avatar = blank;
+      let partnerName;
+      let partnerAvatar;
 
       let localUsersKeys = Object.keys(localUsers);
       if (localUsersKeys.length == 2) { //only one other person, so a pm
@@ -163,20 +164,49 @@ module.exports = {
           return false;
         })[0];
         let otherUser = localUsers[otherUserId];
-        displayName = otherUser.display_name;
-        console.log(roomId, "is a pm with", displayName);
-        avatar = otherUser.img;
+        partnerName = otherUser.display_name;
+        console.log(roomId, "is a pm with", partnerName);
+        partnerAvatar = otherUser.img;
       }
 
       Promise.all([
         this.getRoomName(user, roomId),
-        this.getRoomAvatar(user, roomId)
+        this.getRoomAvatar(user, roomId),
+        this.getRoomAliases(user, roomId)
       ])
         .then((roomInfo) => {
-          let newDisplayName = defaultValue(roomInfo[0], displayName);
-          let newAvatar = defaultValue(roomInfo[1], avatar);
-          console.log("done getting roomDetails", newDisplayName, newAvatar);
-          resolve([newDisplayName, newAvatar]);
+          // Order of defaultValues:
+          // room.name
+          // partnerName
+          // room canonical alias
+          // roomId
+
+          let displayName = 
+            defaultValue(
+              defaultValue(
+                defaultValue(
+                  roomInfo[0],
+                  partnerName
+                ),
+                roomInfo[2]
+              ),
+              roomId
+            );
+
+          // Order of defaultValues:
+          // room.avatar
+          // partnerAvatar
+          // blank
+
+          let avatar = defaultValue(
+            defaultValue(
+              roomInfo[1],
+              partnerAvatar
+            ),
+            blank
+          );
+          
+          resolve([displayName, avatar]);
         });
     });
   },
@@ -219,7 +249,28 @@ module.exports = {
     });
   },
 
+  getRoomAliases: function(user, roomId) {
+    return new Promise((resolve, reject) => {
+      let canonicalAliasUrl = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.canonical_alias`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+      fetch(canonicalAliasUrl)
+        .then(response => response.json())
+        .then(responseJson => {
+          if (responseJson.content != undefined) {
+            resolve(responseJson.content.alias);
+          }
+          resolve(undefined);
+        });
+    });
+  },
+
   syncRequest: function(user, localRooms, localInvites) {
+    console.log("neo: syncRequest");
     return new Promise((resolve, reject) => {
       let url = Object.assign({}, user.hs, {
         pathname: "/_matrix/client/r0/sync",
@@ -247,41 +298,60 @@ module.exports = {
           
           let remoteRooms = responseJson.rooms.join;
 
-          Object.keys(remoteRooms).forEach((roomId) => {
-            if (localRooms[roomId] == undefined) {
-              this.getRoomInfo(user, roomId) //TODO: save backlog as well
-                .then((infoArray) => {
-                  localRooms[roomId].users = infoArray[2];
-                });
-            }
-            let room = defaultValue(localRooms[roomId], {});
-            let remoteRoom = remoteRooms[roomId];
+          Promise.map(Object.keys(remoteRooms), (roomId) => {
+            let localRoom = localRooms[roomId];
 
-            let newEvents = {};
-            remoteRoom.timeline.events.forEach((event) => {
-              newEvents[event.event_id] = event;
+            return new Promise((resolve, reject) => {
+              if (localRoom == undefined) {
+                this.getRoomInfo(user, roomId)
+                  .then((infoArray) => {
+                    let localUsers = infoArray[2];
+                    this.getRoomDetails(user, roomId, localUsers)
+                      .then((roomDetails) => {
+                        localRoom = infoArray[1];
+                        localRoom.users = localUsers;
+              
+                        localRoom.info = {
+                          name: roomDetails[0],
+                          avatar: roomDetails[1]
+                        };
+                      });
+                  });
+              }
+              resolve(localRoom);
+            }).then((localRoom) => {
+              let remoteRoom = remoteRooms[roomId];
+  
+              let newEvents = {};
+              remoteRoom.timeline.events.forEach((event) => {
+                newEvents[event.event_id] = event;
+              });
+  
+              localRoom = this.parseEvents(localRoom, newEvents);
+  
+              let unread = defaultValue(
+                remoteRoom.unread_notifications.notification_count,
+                0
+              );
+  
+              let highlight = defaultValue(
+                remoteRoom.unread_notifications.highlight_count,
+                0
+              );
+              localRoom.notif = {unread: unread, highlight: highlight};
+              return [roomId, localRoom];
+            });
+          }).then((localRoomsArray) => {
+            localRoomsArray.forEach((localRoomInfo) => {
+              let roomId = localRoomInfo[0];
+              let localRoom = localRoomInfo[1];
+              localRooms[roomId] = localRoom;
             });
 
-            room = this.parseEvents(room, newEvents);
-
-            let unread = defaultValue(
-              remoteRoom.unread_notifications.notification_count,
-              0
-            );
-
-            let highlight = defaultValue(
-              remoteRoom.unread_notifications.highlight_count,
-              0
-            );
-            room.notif = {unread: unread, highlight: highlight};
-
-            localRooms[roomId] = room;
+            let remoteInvites = responseJson.rooms.invite;
+            localInvites = this.parseInvites(user, localInvites, remoteInvites);
+            resolve([localRooms, localInvites]);
           });
-
-          let remoteInvites = responseJson.rooms.invite;
-          localInvites = this.parseInvites(user, localInvites, remoteInvites);
-
-          resolve([localRooms, localInvites]);
         });
     });
   },
@@ -446,6 +516,17 @@ module.exports = {
     return urllib.format(Object.assign({}, hs, {
       pathname: `/_matrix/media/r0/download/${mxc.substring(6)}`
     }));
-  }
+  },
 
+  userInfo: function(info) {
+    this.info = info;
+    
+    this.setAvatar = function(userId, src) {
+      this.info[userId] = Object.assign(defaultValue(this.info[userId], {}), {img: src});
+    },
+
+    this.getAvatar = function(userId) {
+      return defaultValue(this.info[userId].img, blank);
+    };
+  }
 };
