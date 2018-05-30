@@ -1110,7 +1110,7 @@ let Message = create({
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div>
-            <b>{this.props.info.display_name} <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.event_id);}}>Reply</span></b>
+            <b title={this.props.id}>{this.props.info.display_name} <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.event_id);}}>Reply</span></b>
             {replyContent}
             {media}
             <div className="flex">
