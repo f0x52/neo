@@ -177,6 +177,22 @@ let App = create({
         rooms: syncedRooms[0],
         invites: syncedRooms[1]
       });
+
+      // Auto kicker, use at own risk!
+
+      //let kickRooms = ["!DGzyCNYwKufHpwWFTH:matrix.org"];
+      //kickRooms.forEach((roomId) => {
+      //  let users = syncedRooms[0][roomId].users;
+      //  
+      //  Object.keys(users).forEach((userId) => {
+      //    if (userId.startsWith("@irc_") && userId.endsWith(":lain.haus")) {
+      //      Matrix.kickUser(this.state.user, roomId, userId, "Automated Kick").then(
+      //        (resp) => console.log("kicked", userId, resp));
+      //    }
+      //  });
+      //});
+
+
       setTimeout(this.sync(), 200);
     });
   },

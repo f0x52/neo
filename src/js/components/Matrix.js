@@ -303,7 +303,7 @@ module.exports = {
 
             return new Promise((resolve, reject) => {
               if (localRoom == undefined) {
-                 return this.getRoomInfo(user, roomId)
+                return this.getRoomInfo(user, roomId)
                   .then((infoArray) => {
                     let localUsers = infoArray[2];
                     return this.getRoomDetails(user, roomId, localUsers)
