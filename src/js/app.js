@@ -20,7 +20,7 @@ let options = {retries: 5, retryDelay: 200};
 // Components
 let File = require('./components/fileUpload');
 let RoomList = require('./components/roomList');
-let MessageView = require('./components/messageView');
+let RoomView = require('./components/messageView');
 
 let Event = require('./components/Events.js');
 let Matrix = require('./components/Matrix.js');
@@ -271,9 +271,9 @@ let App = create({
     if (this.state.room != 0) {
       view = (
         <React.Fragment>
-          <MessageView
+          <RoomView
             backlog={this.getBacklog}
-            room={this.state.room}
+            roomId={this.state.room}
             rooms={this.state.rooms}
             user={this.state.user}
             userinfo={this.state.userinfo}

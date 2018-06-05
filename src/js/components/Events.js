@@ -5,13 +5,13 @@ const icons = require('./icons.js');
 
 module.exports = {
   asText: function(event) {
-    if (event.content == undefined ||
-      (event.content.membership == undefined &&
-        event.content.msgtype == undefined && event.type != "m.sticker")) {
-      //console.log(event);
-      //return "please open an issue at github.com/f0x52/neo/issues, full event in console";
-      return null;
-    }
+    //if (event.content == undefined ||
+    //  (event.content.membership == undefined &&
+    //    event.content.msgtype == undefined && event.type != "m.sticker")) {
+    //  //console.log(event);
+    //  //return "please open an issue at github.com/f0x52/neo/issues, full event in console";
+    //  return null;
+    //}
 
     if (event.reply) {
       let doubleNewlineIndex = event.content.body.indexOf("\n\n")+1; //breaks on specific messages with two /n/n
@@ -34,13 +34,14 @@ module.exports = {
         type = "[location]";
       } else if (event.content.msgtype == "m.audio") {
         type = "[audio]";
-      } else if (event.content.msgtype == "m.sticker") {
-        let bodyParts = event.content.body.split(" ");
-        let emoji = bodyParts[0];
-        return <span>{emoji} Sticker</span>;
       }
-
       return <span>{type} {event.content.body}</span>;
+
+    } else if (event.type == "m.sticker") {
+      let bodyParts = event.content.body.split(" ");
+      let emoji = bodyParts[0];
+      return <span>{emoji} Sticker</span>;
+
     } else if (event.type == "m.room.member") {
       let action = "";
       let reason = "";

@@ -4,110 +4,133 @@ const React = require("react");
 const create = require("create-react-class");
 //const Promise = require('bluebird');
 const urllib = require('url');
-const defaultValue = require('default-value');
+//const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
 const rfetch = require('fetch-retry');
 
+const Scroll = require("react-scroll");
+const scroll = Scroll.animateScroll;
+
 const Event = require('./Events.js');
 const Matrix = require('./Matrix.js');
-const debounce = require('debounce');
+//const debounce = require('debounce');
 const blank = require('../../assets/blank.jpg');
+const icons = require('./icons.js');
+
+let RoomView = create({
+  displayName: "roomView",
+  
+  render: function() {
+    return(
+      <div className="roomView">
+        <MessageView {...this.props} />
+        <Userlist {...this.props} />
+      </div>
+    );
+  }
+});
 
 let MessageView = create({
-  displayName: "MessageView",
+  displayName: "scrollView",
 
   getInitialState: function() {
-    return({
-      scroll: {},
-      element: null,
-    });
-  },
-
-  setRef: function(element) {
-    if (element != null) {
-      element.addEventListener("scroll", debounce(this.onScroll, 10));
-      this.setState({element: element});
-    }
-  },
-
-  onScroll: function() {
-    this.setState({
-      scroll: Object.assign({}, this.state.scroll, {
-        [this.props.room]: this.getScroll()
-      })
-    });
-  },
-
-  getScroll: function() {
-    if (this.state.element == null) {
-      return null;
-    }
     return ({
-      scrollTop: this.state.element.scrollTop,
-      scrollHeight: this.state.element.scrollHeight,
-      clientHeight: this.state.element.clientHeight
+      scrollOptions: {containerId: "messagesScrollView", duration: 200}
     });
   },
-  
-  componentDidUpdate: function() {
-    if (this.props.room != this.state.lastRoom) {
-      if (this.state.scroll[this.props.room] != undefined) {
-        let scrollProps = this.state.scroll[this.props.room];
-        if (scrollProps.scrollHeight - scrollProps.scrollTop - scrollProps.clientHeight < 100) {
-          this.scrollToBottom();
-        } else {
-          this.state.element.scrollTop = scrollProps.scrollTop;
-        }
-      }
-      this.setState({
-        lastRoom: this.props.room
-      });
-    }
+
+  scrollToTop: function() {
+    scroll.scrollToTop(this.state.scrollOptions);
   },
 
   scrollToBottom: function() {
-    let scrollProps = this.state.scroll[this.props.room];
-    this.state.element.scrollTop = scrollProps.scrollHeight - scrollProps.clientHeight + 100;
+    scroll.scrollToBottom(this.state.scrollOptions);
   },
 
-  render: function() {
-    let scroll = {};
-    if (this.state.scroll[this.props.room] != null) {
-      scroll = this.state.scroll[this.props.room];
-    }
+  render: function () {
     let className = "messages";
     if (this.props.user.settings.bool.split) {
       className += " split";
     }
 
-    return(
-      <div className="message_window_split">
-        <div className={className} id="message_window" ref={this.setRef}>
-          <Messages
-            backlog={this.props.backlog}
-            room={this.props.room}
-            rooms={this.props.rooms}
-            user={this.props.user}
-            users={this.props.users}
-            scrollToBottom={this.scrollToBottom}
-            getScroll={this.getScroll}
-            onScroll={this.onScroll}
-            scroll={scroll}
-            userinfo={this.props.userinfo}
-            get_userinfo={this.props.get_userinfo}
-            unsentEvents={this.props.unsentEvents}
-            setReply={this.props.setReply}
-            setParentState={this.props.setParentState}
+    let room = this.props.rooms[this.props.roomId];
+    let events = room.events;
+
+    if (this.props.roomId == 0 || events == undefined) {
+      return null;
+    }
+
+    let eventIndex = room.eventIndex;
+    let messages = eventIndex.map((eventId) => {
+      let event = events[eventId];
+      //let next_event = parseInt(event_num)+1;
+
+      let eventAsText = Event.asText(event);
+      if (eventAsText == null) {
+        //We can't render this
+        return null;
+      }
+
+      if (event.grouped != 1 && event.type == "m.room.message") {
+        let replyEvent;
+        if (event.content["m.relates_to"] != null &&
+          event.content["m.relates_to"]["m.in_reply_to"] != null) {
+          let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
+          replyEvent = events[replyId];
+        }
+
+        //while (this.props.messages[next_event] != undefined &&
+        //  this.props.messages[next_event].sender == event.sender &&
+        //  this.props.messages[next_event].type == "m.room.message" &&
+        //  (this.props.messages[next_event].content.msgtype == "m.text" ||
+        //    this.props.messages[next_event].content.msgtype == "m.notice" ) &&
+        //  (this.props.messages[next_event].origin_server_ts -
+        //    event.origin_server_ts < 300000) && //max 5 min older
+        //  this.props.messages[next_event].grouped != 1) {
+        //  this.props.messages[next_event].grouped = 1;
+        //  event.content.body += "\n" + this.props.messages[next_event].content.body;
+        //  next_event++;
+        //}
+  
+        return (
+          <Message
+            key={event.event_id}
+            info={this.props.userinfo[event.sender]}
+            id={event.sender}
+            event={event}
+            source={event.sender == this.props.user.user_id ? "out" : "in"}
+            group="yes"
+            replyTo={replyEvent}
+            event_id={event.event_id}
+            users={room.users}
+            {...this.props}
           />
-        </div>
-        <Userlist
-          roomId={this.props.room}
-          rooms={this.props.rooms}
-        />
+        );
+      } else {
+        let text = Event.asText(event);
+        let className = "line";
+
+        if (event.type == "m.room.member") {
+          className += " member";
+        }
+
+        return (
+          <div className={className} key={event.event_id}>
+            {text}
+          </div>
+        );
+      }
+    });
+
+  	return (
+      <div className={className} id="messagesScrollView">
+        {messages}
+        <span className="bottom onclick" onClick={this.scrollToBottom}>{icons.arrow.down}</span>
       </div>
     );
   }
 });
+
 
 let Userlist = create({
   getInitialState: function() {
@@ -164,146 +187,6 @@ let Userlist = create({
     return (
       <div className="userlist" onScroll={this.userlistScroll}>
         {userlist}
-      </div>
-    );
-  }
-});
-
-let Messages = create({
-  displayName: "Messages",
-  getInitialState: function() {
-    return({
-      userinfo: [],
-      shouldGoToBottom: 0
-    });
-  },
-
-  componentDidUpdate: function() {
-    let scrollState = this.props.getScroll();
-
-    if (this.props.scroll.scrollTop == null) {
-      this.props.onScroll();
-      return;
-    }
-
-    if (this.props.scroll.scrollHeight != scrollState.scrollHeight) {
-      //New messages were added
-      if (scrollState.scrollHeight - scrollState.scrollTop - scrollState.clientHeight < 200) {
-        this.props.scrollToBottom();
-      }
-    }
-  },
-
-  render: function() {
-    let events = this.props.rooms[this.props.room].events;
-    if (this.props.room == 0 || events == undefined) {
-      return null;
-    }
-
-    let eventIndex = this.props.rooms[this.props.room].eventIndex;
-    let messages = eventIndex.map((eventId) => {
-      let event = events[eventId];
-      //let next_event = parseInt(event_num)+1;
-
-      if (event.type == "m.sticker") { //ugly hack
-        event.type = "m.room.message";
-        event.content.msgtype = "m.sticker";
-      }
-
-      if (event.grouped != 1 && event.type == "m.room.message") {
-        if (this.props.userinfo[event.sender] == undefined) {
-          this.props.get_userinfo(event.sender);
-        }
-
-        let replyEvent;
-        if (event.content["m.relates_to"] != null &&
-          event.content["m.relates_to"]["m.in_reply_to"] != null) {
-          let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
-          replyEvent = events[replyId];
-        }
-
-        //while (this.props.messages[next_event] != undefined &&
-        //  this.props.messages[next_event].sender == event.sender &&
-        //  this.props.messages[next_event].type == "m.room.message" &&
-        //  (this.props.messages[next_event].content.msgtype == "m.text" ||
-        //    this.props.messages[next_event].content.msgtype == "m.notice" ) &&
-        //  (this.props.messages[next_event].origin_server_ts -
-        //    event.origin_server_ts < 300000) && //max 5 min older
-        //  this.props.messages[next_event].grouped != 1) {
-        //  this.props.messages[next_event].grouped = 1;
-        //  event.content.body += "\n" + this.props.messages[next_event].content.body;
-        //  next_event++;
-        //}
-
-        return (
-          <Message
-            key={event.event_id}
-            info={this.props.userinfo[event.sender]}
-            id={event.sender}
-            event={event}
-            source={event.sender == this.props.user.user_id ? "out" : "in"}
-            group="no"
-            user={this.props.user}
-            replyTo={replyEvent}
-            event_id={event.event_id}
-            users={this.props.rooms[this.props.room].users}
-            setParentState={this.props.setParentState}
-          />
-        );
-      } else if (event.type == "m.room.member") {
-        let text = Event.asText(event);
-        return (
-          <div className="line member" key={event.event_id}>
-            {text}
-          </div>
-        );
-      }
-      return null;
-    });
-
-    let unsentWrap;
-    let roomUnsent = defaultValue(this.props.rooms[this.props.room].unsentEvents, {});
-    let roomUnsentKeys = Object.keys(roomUnsent);
-    if (roomUnsentKeys.length > 0) {
-      let unsent = roomUnsentKeys.map((eventId) => {
-        let event = roomUnsent[eventId];
-
-        let replyEvent;
-        if (event.content["m.relates_to"] != null &&
-          event.content["m.relates_to"]["m.in_reply_to"] != null) {
-          let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
-          replyEvent = events[replyId];
-        }
-
-        return (
-          <Message
-            key={eventId}
-            info={this.props.userinfo[this.props.user.user_id]}
-            event={event}
-            group="no"
-            user={this.props.user}
-            sent={event.sent}
-            replyTo={replyEvent}
-            event_id={eventId}
-            users={this.props.rooms[this.props.room].users}
-            setParentState={this.props.setParentState}
-          />
-        );
-      });
-      unsentWrap = (
-        <div className="unsent">
-          {unsent}
-        </div>
-      );
-    }
-    return (
-      <div>
-        <span onClick={() => this.props.backlog(this.props.room)}>
-          Load more messages
-        </span><br/>
-        {this.props.room}
-        {messages}
-        {unsentWrap}
       </div>
     );
   }
@@ -620,4 +503,16 @@ function displayMedia(type, container, src, thumb, h, w, className) {
   }
 }
 
-module.exports = MessageView;
+function sortByUsername(a, b) {
+  var nameA = a.toUpperCase();
+  var nameB = b.toUpperCase();
+  if (nameA < nameB) {
+    return -1;
+  }
+  if (nameA > nameB) {
+    return 1;
+  }
+  return 0;
+}
+
+module.exports = RoomView;

@@ -412,13 +412,22 @@ html, body {
     display: flex;
     flex-direction: column;
 
-    .message_window_split {
+    .roomView {
       display: flex;
-      overflow-y: auto;
       height: 100%;
+      flex: 1 1 auto;
+      overflow: hidden;
 
-      .message_window, .userlist {
+      .messages, .userlist {
+        flex: 1;
+        overflow-x: hidden;
         overflow-y: auto;
+
+        .bottom {
+          position: absolute;
+          bottom: 10px;
+          right: 10px;
+        }
       }
 
       .userlist {
@@ -464,126 +473,121 @@ html, body {
       margin-top: 8px;
     }
 
-    .messages {
-      flex: 1;
-      overflow-x: hidden;
-      overflow-y: auto;
+    .message {
+      clear: both;
+      margin: 0px 5px;
+      display: inline-flex;
+      min-width: 110px;
+      max-width: calc(100% - 85px);
+      border-radius: 4px;
 
-      .message {
-        clear: both;
-        margin: 0px 5px;
-        display: inline-flex;
-        min-width: 110px;
-        max-width: calc(100% - 85px);
-        border-radius: 4px;
+      div {
+        display: inline-block;
+        width: 100%;
+        overflow: hidden;
 
-        div {
-          display: inline-block;
-          width: 100%;
-          overflow: hidden;
-
-          b {
-            margin: 5px 10px;
-            margin-bottom: 0;
-            display: block;
-            position: relative;
-
-            #reply {
-              right: 0;
-              position: absolute;
-              opacity: 0.1;
-              transition: 0.5s;
-              cursor: pointer;
-            }
-            
-            #reply:hover {
-              opacity: 1;
-              transition: 0.5s;
-            }
-          }
-
-          .nothumb, .file {
-            margin: 10px;
-          }
-
-
-          a img, video {
-            margin-top: 5px;
-            border: 1px solid lighten($bg, 1);
-          }
-
-          .flex {
-            display: flex;
-            margin: 0 4px;
-
-            p, .timestamp {
-              margin: 5px;
-            }
-
-            p {
-              flex: 1;
-            }
-
-            .link {
-              max-width: 100%;
-              max-height: 600px;
-              width: auto;
-              height: auto;
-            }
-
-            .timestamp {
-              align-self: flex-end;
-              display: block;
-              text-align: right;
-              padding-right: 4px;
-              float: right;
-              clear: left;
-            }
-          }
-        }
-
-        .media {
-          padding-left: 0;
-          padding-right: 0;
-        }
-      }
-
-      .message.nobubble {
-        border-radius: initial;
-        margin-left: 2px;
-
-        div p {
-          margin-top: 0;
-          margin-bottom: 7px;
-        }
-      }
-
-      .message.nobubble.mention {
-        margin-left: 4px;
         b {
-          margin-left: 8px;
+          margin: 5px 10px;
+          margin-bottom: 0;
+          display: block;
+          position: relative;
+
+          #reply {
+            right: 0;
+            position: absolute;
+            opacity: 0.1;
+            transition: 0.5s;
+            cursor: pointer;
+          }
+          
+          #reply:hover {
+            opacity: 1;
+            transition: 0.5s;
+          }
         }
 
-        div .flex {
-          margin-left: 4px;
+        .nothumb, .file {
+          margin: 10px;
+        }
+
+
+        a img, video {
+          margin-top: 5px;
+          border: 1px solid lighten($bg, 1);
         }
 
         .flex {
-          margin: 0 2px;
-        }
-      }
+          display: flex;
+          margin: 0 4px;
 
-      .message div {
-        .replyTo {
-          margin-left: 8px;
-          padding-left: 6px;
+          p, .timestamp {
+            margin: 5px;
+          }
 
-          b#reply {
-            margin-left: 0;
+          p {
+            flex: 1;
+          }
+
+          .link {
+            max-width: 100%;
+            max-height: 600px;
+            width: auto;
+            height: auto;
+          }
+
+          .timestamp {
+            align-self: flex-end;
+            display: block;
+            text-align: right;
+            padding-right: 4px;
+            float: right;
+            clear: left;
           }
         }
       }
+
+      .media {
+        padding-left: 0;
+        padding-right: 0;
+      }
     }
+
+    .message.nobubble {
+      border-radius: initial;
+      margin-left: 2px;
+
+      div p {
+        margin-top: 0;
+        margin-bottom: 7px;
+      }
+    }
+
+    .message.nobubble.mention {
+      margin-left: 4px;
+      b {
+        margin-left: 8px;
+      }
+
+      div .flex {
+        margin-left: 4px;
+      }
+
+      .flex {
+        margin: 0 2px;
+      }
+    }
+
+    .message div {
+      .replyTo {
+        margin-left: 8px;
+        padding-left: 6px;
+
+        b#reply {
+          margin-left: 0;
+        }
+      }
+    }
+    
 
     .split {
       .out {
@@ -603,6 +607,7 @@ html, body {
     }
 
     .input {
+      flex: 1 1 auto;
       .compose {
         display: flex;
         flex-direction: column;
