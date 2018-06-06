@@ -122,9 +122,11 @@ let MessageView = create({
       }
     });
 
-  	return (
-      <div className={className} id="messagesScrollView">
-        {messages}
+    return (
+      <div className="messagesScrollViewWrapper">
+        <div className={className} id="messagesScrollView">
+          {messages}
+        </div>
         <span className="bottom onclick" onClick={this.scrollToBottom}>{icons.arrow.down}</span>
       </div>
     );
@@ -359,20 +361,30 @@ let Message = create({
       {content}
     </Linkify>;
 
+    if (this.props.info == undefined) {
+      console.log("can't get info for", this.props.id);
+      return null;
+    }
+
     return (
       <div className={"line " + this.props.source} ref={this.setRef}>
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
-          <div>
-            <b title={this.props.id}>{this.props.info.display_name} <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.event_id);}}>Reply</span></b>
+          <div className="messageContainer">
+            <b title={this.props.id}>{this.props.info.display_name}</b>
             {replyContent}
             {media}
             <div className="flex">
               <p>
                 {link}
               </p>
-              <span className="timestamp">{time_string}</span>
             </div>
+          </div>
+          <div className="replyAndTime">
+            <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.event_id);}}>
+              Reply
+            </span>
+            <span className="timestamp">{time_string}</span>
           </div>
         </div>
       </div>

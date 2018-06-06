@@ -418,16 +418,31 @@ html, body {
       flex: 1 1 auto;
       overflow: hidden;
 
-      .messages, .userlist {
-        flex: 1;
-        overflow-x: hidden;
-        overflow-y: auto;
+      .messagesScrollViewWrapper {
+        position: relative;
+        flex: 1 1 auto;
+
+        #messagesScrollView {
+          height: 100%;
+        }
 
         .bottom {
           position: absolute;
-          bottom: 10px;
-          right: 10px;
+          bottom: 25px;
+          right: 25px;
+          padding: 10px;
+          background: $bg;
+
+          .icon {
+            line-height: 30px;
+            height: 30px;
+          }
         }
+      }
+
+      .messages, .userlist {
+        overflow-x: hidden;
+        overflow-y: auto;
       }
 
       .userlist {
@@ -473,43 +488,34 @@ html, body {
       margin-top: 8px;
     }
 
+    .inner {
+      position: relative;
+    }
+
     .message {
       clear: both;
       margin: 0px 5px;
-      display: inline-flex;
+      padding: 8px 0;
       min-width: 110px;
       max-width: calc(100% - 85px);
       border-radius: 4px;
+      display: inline-flex;
 
-      div {
+      .messageContainer {
         display: inline-block;
-        width: 100%;
         overflow: hidden;
+        flex: 0 1 auto;
 
         b {
-          margin: 5px 10px;
+          margin-left: 10px;
           margin-bottom: 0;
           display: block;
           position: relative;
-
-          #reply {
-            right: 0;
-            position: absolute;
-            opacity: 0.1;
-            transition: 0.5s;
-            cursor: pointer;
-          }
-          
-          #reply:hover {
-            opacity: 1;
-            transition: 0.5s;
-          }
         }
 
         .nothumb, .file {
           margin: 10px;
         }
-
 
         a img, video {
           margin-top: 5px;
@@ -522,6 +528,7 @@ html, body {
 
           p, .timestamp {
             margin: 5px;
+            margin-bottom: 0;
           }
 
           p {
@@ -534,15 +541,32 @@ html, body {
             width: auto;
             height: auto;
           }
+        }
+      }
 
-          .timestamp {
-            align-self: flex-end;
-            display: block;
-            text-align: right;
-            padding-right: 4px;
-            float: right;
-            clear: left;
-          }
+      .replyAndTime {
+        flex: 0 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding-left: 8px;
+
+        #reply {
+          opacity: 0.1;
+          transition: 0.5s;
+          cursor: pointer;
+        }
+        
+        #reply:hover {
+          opacity: 1;
+          transition: 0.5s;
+        }
+
+        .timestamp {
+          align-self: flex-end;
+          display: block;
+          text-align: right;
+          padding-right: 4px;
         }
       }
 
