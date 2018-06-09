@@ -39,10 +39,6 @@ let MessageView = create({
     });
   },
 
-  scrollToTop: function() {
-    scroll.scrollToTop(this.state.scrollOptions);
-  },
-
   scrollToBottom: function() {
     scroll.scrollToBottom(this.state.scrollOptions);
   },
@@ -71,14 +67,14 @@ let MessageView = create({
         return null;
       }
 
-      if (event.grouped != 1 && event.type == "m.room.message") {
-        let replyEvent;
-        if (event.content["m.relates_to"] != null &&
-          event.content["m.relates_to"]["m.in_reply_to"] != null) {
-          let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
-          replyEvent = events[replyId];
-        }
+      let replyEvent;
+      if (event.content["m.relates_to"] != null &&
+        event.content["m.relates_to"]["m.in_reply_to"] != null) {
+        let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
+        replyEvent = events[replyId];
+      }
 
+      if (event.type == "m.room.message" || event.type == "m.sticker") {
         //while (this.props.messages[next_event] != undefined &&
         //  this.props.messages[next_event].sender == event.sender &&
         //  this.props.messages[next_event].type == "m.room.message" &&
@@ -101,7 +97,7 @@ let MessageView = create({
             source={event.sender == this.props.user.user_id ? "out" : "in"}
             group="yes"
             replyTo={replyEvent}
-            event_id={event.event_id}
+            eventId={event.event_id}
             users={room.users}
             {...this.props}
           />
@@ -241,8 +237,8 @@ let Message = create({
   
     let eventBody = this.props.event.content.body;
 
-    if (this.props.event.content.msgtype == "m.image" || this.props.event.content.msgtype == "m.sticker") {
-      if (this.props.event.content.msgtype == "m.sticker") {
+    if (this.props.event.content.msgtype == "m.image" || this.props.event.type == "m.sticker") {
+      if (this.props.event.type == "m.sticker") {
         eventBody = "";
       }
 
@@ -330,8 +326,8 @@ let Message = create({
           {Event.asText(this.props.replyTo)}
         </div>
       );
-      let doubleNewlineIndex = this.props.event.content.body.indexOf("\n\n"); //breaks on specific messages with two /n/n
-      eventBody = this.props.event.content.body.substr(doubleNewlineIndex+1);
+      let doubleNewlineIndex = eventBody.indexOf("\n\n"); //breaks on specific messages with two /n/n
+      eventBody = eventBody.substr(doubleNewlineIndex+1);
     }
 
     let content = (
@@ -381,7 +377,7 @@ let Message = create({
             </div>
           </div>
           <div className="replyAndTime">
-            <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.event_id);}}>
+            <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.eventId);}}>
               Reply
             </span>
             <span className="timestamp">{time_string}</span>

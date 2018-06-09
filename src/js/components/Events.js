@@ -36,12 +36,10 @@ module.exports = {
         type = "[audio]";
       }
       return <span>{type} {event.content.body}</span>;
-
     } else if (event.type == "m.sticker") {
       let bodyParts = event.content.body.split(" ");
       let emoji = bodyParts[0];
       return <span>{emoji} Sticker</span>;
-
     } else if (event.type == "m.room.member") {
       let action = "";
       let reason = "";

@@ -389,7 +389,7 @@ let Send = create({
           selectedOption: option
         });
       } else { //update suggestions
-        let completions = getCompletion(this.props.rooms[this.props.room].users, word);
+        let completions = getUserCompletion(this.props.rooms[this.props.room].users, word);
         let option = this.state.selectedOption;
         if (event.keyCode == 38) { // up arrow
           option = (option - 1) % completions.length;
@@ -674,7 +674,7 @@ function uniqEvents(a, b) {
   return a.event_id === b.event_id;
 }
 
-function getCompletion(list, str) {
+function getUserCompletion(list, str) {
   let completionList = [];
   console.log("neo: getting completion for", str);
   if (str.trim() == "") {

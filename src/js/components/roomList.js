@@ -33,6 +33,10 @@ let List = create({
     this.setState({element: element});
   },
 
+  setFilterRef: function(element) {
+    this.setState({filterRef: element});
+  },
+
   render: function() {
     let rooms = this.props.rooms;
     let sortedRooms = Object.keys(rooms).sort(
@@ -62,7 +66,10 @@ let List = create({
         <div className="list no-select" id="list">
           <div className="header">
             <img src={this.props.icon.hamburger.dark} alt="menu" onClick={this.toggleMenu}/>
-            <span>Neo</span> {/* Can be used for search later*/}
+            {/*<span>Neo</span> {/* Can be used for search later*/}
+            <span>
+              <input ref={this.setFilterRef}/>
+            </span>
           </div>
           <Menu
             menu={this.state.menu}
