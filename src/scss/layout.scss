@@ -264,7 +264,11 @@ html, body {
         cursor: pointer;
       }
 
-      span {
+      div {
+        display: inline-block;
+      }
+
+      div input {
         font-weight: bold;
         font-size: 170%;
         padding-left: 5px;

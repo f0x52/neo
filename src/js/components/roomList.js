@@ -34,11 +34,30 @@ let List = create({
   },
 
   setFilterRef: function(element) {
-    this.setState({filterRef: element});
+    if (element != null) {
+      this.setState({filterRef: element});
+      element.addEventListener("keydown", () => {setTimeout(this.filterRooms, 1);});
+      setTimeout(this.filterRooms, 1);
+    }
+  },
+
+  getDerivedStateFromProps: function(props) {
+    return ({
+      filteredRooms: props.rooms
+    });
+  },
+
+  filterRooms: function() {
+    let input = this.state.filterRef.value;
+    let filteredRooms = getFilteredRooms(this.props.rooms, input);
+    this.setState({filteredRooms: filteredRooms});
   },
 
   render: function() {
-    let rooms = this.props.rooms;
+    let rooms = this.state.filteredRooms;
+    if (rooms == undefined) {
+      rooms = this.props.rooms;
+    }
     let sortedRooms = Object.keys(rooms).sort(
       function(a, b) {
         return rooms[b].lastEvent.origin_server_ts - rooms[a].lastEvent.origin_server_ts;
@@ -47,7 +66,8 @@ let List = create({
     let list = sortedRooms.map((roomId) =>
       <RoomEntry
         lastEvent={rooms[roomId].lastEvent}
-        rooms={rooms}
+        rooms={this.props.rooms}
+        filteredRooms={this.state.filteredRooms}
         roomId={roomId}
         active={this.props.room == roomId}
         key={roomId}
@@ -67,9 +87,9 @@ let List = create({
           <div className="header">
             <img src={this.props.icon.hamburger.dark} alt="menu" onClick={this.toggleMenu}/>
             {/*<span>Neo</span> {/* Can be used for search later*/}
-            <span>
-              <input ref={this.setFilterRef}/>
-            </span>
+            <div>
+              <input ref={this.setFilterRef} type="text"/>
+            </div>
           </div>
           <Menu
             menu={this.state.menu}
@@ -481,5 +501,20 @@ let darken = function() {
     div = Object.assign(div.style, {zIndex: "50", backgroundColor: "hsla(0, 0%, 0%, 0.5)"});
   });
 };
+
+function getFilteredRooms(list, str) {
+  let completionList = {};
+  if (str.trim() == "") {
+    return list;
+  }
+  str = str.toUpperCase();
+  Object.keys(list).forEach((roomId) => {
+    let completion = list[roomId].info.name;
+    if (completion.toUpperCase().includes(str)) {
+      completionList[roomId] = list[roomId];
+    }
+  });
+  return(completionList);
+}
 
 module.exports = List;
