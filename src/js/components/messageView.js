@@ -248,7 +248,7 @@ let Message = create({
 
       classArray += " media";
       if (this.props.event.content.info == undefined) {
-        let url = Matrix.Matrix.m_download(this.props.user.hs, this.props.event.content.url);
+        let url = Matrix.m_download(this.props.user.hs, this.props.event.content.url);
         media = displayMedia("image", this.state.ref, url, url);
       } else if (this.props.event.content.info.thumbnail_info == undefined) {
         let url = Matrix.m_download(this.props.user.hs, this.props.event.content.url);
