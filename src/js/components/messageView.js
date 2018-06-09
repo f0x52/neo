@@ -22,10 +22,10 @@ let RoomView = create({
   
   render: function() {
     return(
-      <div className="roomView">
+      <React.Fragment>
         <MessageView {...this.props} />
         <Userlist {...this.props} />
-      </div>
+      </React.Fragment>
     );
   }
 });

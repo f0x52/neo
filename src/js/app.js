@@ -271,6 +271,9 @@ let App = create({
     if (this.state.room != 0) {
       view = (
         <React.Fragment>
+          <div className="info">
+            {this.state.rooms[this.state.room].info.display_name}
+          </div>
           <RoomView
             backlog={this.getBacklog}
             roomId={this.state.room}

@@ -226,12 +226,57 @@ html, body {
   }
 }
 
+
+/*
+ * Layout
+ *
+ */
+
 .main {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
-  display: flex;
 
+  display: grid;
+  grid-template-columns: 30vw auto;
+
+  .list, .view {
+    height: 100vh;
+  }
+
+  .list {
+    grid-column-start: 1;
+  }
+
+  .view {
+    grid-column-start: 2;
+
+    display: grid;
+    grid-template-columns: auto 15vw;
+    grid-template-rows: 5vh auto 7vh;
+
+    .messagesScrollViewWrapper {
+      grid-column-start: 1;
+      grid-row-start: 2;
+      overflow-y: auto;
+    }
+
+    .userlist {
+      grid-column-start: 2;
+      grid-row-start: 1;
+      grid-row-end: span 3;
+      overflow-y: auto;
+    }
+
+    .input {
+      grid-column-start: 1;
+      grid-column-end: 2;
+      grid-row-start: 3;
+    }
+  }
+}
+
+.main {
   .darken {
     height: 100vh;
     width: 100vw;
@@ -243,15 +288,6 @@ html, body {
   }
 
   .list {
-    //width: 30vw;
-    //height: 100vh;
-    //display: inline-block;
-    //flex-grow: 1;
-    flex-basis: 30vw;
-    width: 30vw;
-    max-width: 30vw;
-    min-width: 30vw;
-
     .header {
       height: 60px;
       line-height: 60px;
@@ -408,76 +444,61 @@ html, body {
   }
 
   .view {
-    //width: 69.8vw;
-    //height: 100vh;
-    //float: right;
-    //min-height: 100vh;
-    flex-grow: 3;
-    display: flex;
-    flex-direction: column;
+    .messagesScrollViewWrapper {
+      position: relative;
 
-    .roomView {
-      display: flex;
-      height: 100%;
-      flex: 1 1 auto;
-      overflow: hidden;
-
-      .messagesScrollViewWrapper {
-        position: relative;
-        flex: 1 1 auto;
-
-        #messagesScrollView {
-          height: 100%;
-        }
-
-        .bottom {
-          position: absolute;
-          bottom: 25px;
-          right: 25px;
-          padding: 10px;
-          background: $bg;
-
-          .icon {
-            line-height: 30px;
-            height: 30px;
-          }
-        }
+      #messagesScrollView {
+        height: 100%;
       }
 
-      .messages, .userlist {
-        overflow-x: hidden;
-        overflow-y: auto;
+      .bottom {
+        position: absolute;
+        bottom: 25px;
+        right: 25px;
+        padding: 10px;
+        background: $bg;
+
+        .icon {
+          line-height: 30px;
+          height: 30px;
+        }
       }
+    }
 
-      .userlist {
-        overflow-x: hidden;
-        max-width: 15vw;
+    .messages, .userlist {
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
 
-        .user {
+    .userlist {
+      overflow-x: hidden;
+      max-width: 15vw;
+
+      .user {
+        height: 48px;
+        padding: 6px;
+        padding-left: 5px;
+
+        #avatar {
           height: 48px;
-          padding: 6px;
-          padding-left: 5px;
+          width: 48px;
+        }
+        .username {
+          vertical-align: middle;
+          display: inline-block;
+          color: darken($fg, 25);
+          overflow: hidden;
+          text-overflow: '...';
+          width: calc(100% - 58px);
 
-          #avatar {
-            height: 48px;
-            width: 48px;
-          }
-          .username {
-            vertical-align: middle;
-            display: inline-block;
-            color: darken($fg, 25);
-            overflow: hidden;
-            text-overflow: '...';
-            width: calc(100% - 58px);
-
-            b {
-              white-space: nowrap;
-              color: $fg;
-            }
+          b {
+            white-space: nowrap;
+            color: $fg;
           }
         }
       }
     }
+    
 
     #avatar {
       height: 60px;
