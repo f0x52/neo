@@ -55,7 +55,7 @@ let List = create({
 
   render: function() {
     let rooms = this.state.filteredRooms;
-    if (rooms == undefined) {
+    if (rooms == undefined || Object.keys(rooms).length == 0) {
       rooms = this.props.rooms;
     }
     let sortedRooms = Object.keys(rooms).sort(
