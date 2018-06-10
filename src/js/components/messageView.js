@@ -337,8 +337,14 @@ let Message = create({
         </div>
       );
       if (this.props.event.type != "m.sticker") {
-        let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
-        eventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
+        if (this.props.event.content.formatted_body != undefined) {
+          let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
+          eventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
+        } else {
+          // kinda primitive, could break on specifically formatted messages
+          let doubleNewlineIndex = event.content.body.indexOf("\n\n")+1;
+          eventBody = event.content.body.substr(doubleNewlineIndex);
+        }
       }
     }
 
