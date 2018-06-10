@@ -13,9 +13,9 @@ module.exports = {
     //  return null;
     //}
 
-    if (event.reply) {
-      let doubleNewlineIndex = event.content.body.indexOf("\n\n")+1; //breaks on specific messages with two /n/n
-      event.content.body = event.content.body.substr(doubleNewlineIndex);
+    if (event.reply && event.content.formatted_body != undefined) {
+      let endOfReplyIndex = event.content.formatted_body.indexOf("</mx-reply>") + 11;
+      event.content.body = event.content.formatted_body.substr(endOfReplyIndex);
     }
 
     if (event.type == "m.room.message") {
@@ -37,6 +37,10 @@ module.exports = {
       }
       return <span>{type} {event.content.body}</span>;
     } else if (event.type == "m.sticker") {
+      if (event.content.body == undefined) {
+        return <span>Sticker</span>;
+      }
+
       let bodyParts = event.content.body.split(" ");
       let emoji = bodyParts[0];
       return <span>{emoji} Sticker</span>;

@@ -239,40 +239,55 @@ html, body {
 
   display: grid;
   grid-template-columns: 30vw auto;
+  grid-template-areas:
+    "sidebar view";
 
   .list, .view {
     height: 100vh;
   }
 
   .list {
-    grid-column-start: 1;
+    grid-area: sidebar;
   }
 
   .view {
-    grid-column-start: 2;
+    grid-area: view;
 
     display: grid;
     grid-template-columns: auto 15vw;
-    grid-template-rows: 5vh auto 7vh;
+    grid-template-rows: 5vh auto;
+
+    grid-template-areas:
+      "info     userlist"
+      "messages userlist"
+      "input    userlist";
+
+    .info {
+      grid-area: info;
+    }
 
     .messagesScrollViewWrapper {
-      grid-column-start: 1;
-      grid-row-start: 2;
+      grid-area: messages;
       overflow-y: auto;
     }
 
     .userlist {
-      grid-column-start: 2;
-      grid-row-start: 1;
-      grid-row-end: span 3;
+      grid-area: userlist;
       overflow-y: auto;
     }
 
     .input {
-      grid-column-start: 1;
-      grid-column-end: 2;
-      grid-row-start: 3;
+      grid-area: input;
     }
+  }
+}
+
+.info {
+  height: 5vh;
+  padding-left: 5px;
+
+  b {
+    font-size: 120%;
   }
 }
 

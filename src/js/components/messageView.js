@@ -17,6 +17,8 @@ const Matrix = require('./Matrix.js');
 const blank = require('../../assets/blank.jpg');
 const icons = require('./icons.js');
 
+const Send = require('./input.js');
+
 let RoomView = create({
   displayName: "roomView",
   
@@ -25,6 +27,9 @@ let RoomView = create({
       <React.Fragment>
         <MessageView {...this.props} />
         <Userlist {...this.props} />
+        <div className="input">
+          <Send {...this.props} />
+        </div>
       </React.Fragment>
     );
   }
@@ -111,7 +116,7 @@ let MessageView = create({
         }
 
         return (
-          <div className={className} key={event.event_id}>
+          <div className={className} key={event.event_id} onContextMenu={(e) => {e.preventDefault(); console.log("event:", event);}}>
             {text}
           </div>
         );
@@ -205,6 +210,9 @@ let Message = create({
   },
 
   render: function() {
+    if (this.props.event.redacted_because != undefined) {
+      return null;
+    }
     let classArray = ["message", this.props.id];
     if (this.props.event.sent) {
       classArray.push("sent");
@@ -326,8 +334,10 @@ let Message = create({
           {Event.asText(this.props.replyTo)}
         </div>
       );
-      let doubleNewlineIndex = eventBody.indexOf("\n\n"); //breaks on specific messages with two /n/n
-      eventBody = eventBody.substr(doubleNewlineIndex+1);
+      if (this.props.event.type != "m.sticker") {
+        let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
+        eventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
+      }
     }
 
     let content = (
@@ -363,7 +373,7 @@ let Message = create({
     }
 
     return (
-      <div className={"line " + this.props.source} ref={this.setRef}>
+      <div className={"line " + this.props.source} ref={this.setRef} onContextMenu={(e) => {e.preventDefault(); console.log("event:", this.props.event);}} >
         <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div className="messageContainer">
