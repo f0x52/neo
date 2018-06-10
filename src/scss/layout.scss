@@ -259,25 +259,33 @@ html, body {
 
     grid-template-areas:
       "info     userlist"
-      "messages userlist"
-      "input    userlist";
+      "flex     userlist"
+      "flex     userlist";
 
     .info {
       grid-area: info;
     }
 
-    .messagesScrollViewWrapper {
-      grid-area: messages;
-      overflow-y: auto;
+    .messagesAndInput {
+      grid-area: flex;
+      display: flex;
+      flex-direction: column;
+      height: 95vh;
+      max-height: 95vh;
+
+      .messagesScrollViewWrapper {
+        overflow-y: auto;
+        flex: 0 1 auto;
+      }
+
+      .input {
+        flex: 0 1 auto;
+      }
     }
 
     .userlist {
       grid-area: userlist;
       overflow-y: auto;
-    }
-
-    .input {
-      grid-area: input;
     }
   }
 }

@@ -25,11 +25,13 @@ let RoomView = create({
   render: function() {
     return(
       <React.Fragment>
-        <MessageView {...this.props} />
-        <Userlist {...this.props} />
-        <div className="input">
-          <Send {...this.props} />
+        <div className="messagesAndInput">
+          <MessageView {...this.props} />
+          <div className="input">
+            <Send {...this.props} />
+          </div>
         </div>
+        <Userlist {...this.props} />
       </React.Fragment>
     );
   }
