@@ -329,6 +329,8 @@ let Message = create({
       return null;
     }
 
+    let formattedEventBody = this.props.event.content.formatted_body;
+
     let replyContent;
     if (this.props.replyTo != undefined) {
       if (this.props.users[this.props.replyTo.sender] == undefined) {
@@ -342,9 +344,9 @@ let Message = create({
         </div>
       );
       if (this.props.event.type != "m.sticker") {
-        if (this.props.event.content.formatted_body != undefined) {
+        if (formattedEventBody != undefined) {
           let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
-          eventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
+          formattedEventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
         } else {
           // kinda primitive, could break on specifically formatted messages
           let doubleNewlineIndex = this.props.event.content.body.indexOf("\n\n")+1;
@@ -353,12 +355,9 @@ let Message = create({
       }
     }
 
-    let content = this.props.event.content.body;
     if (this.props.event.content.formatted_body != undefined) {
-      let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
-      let formattedBodyWithoutReply = this.props.event.content.formatted_body.substr(endOfReplyIndex);
-      const saneHtml = sanitize(formattedBodyWithoutReply, riot.sanitizeHtmlParams);
-      content = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
+      const saneHtml = sanitize(formattedEventBody, riot.sanitizeHtmlParams);
+      eventBody = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
     }
 
     //    let content = (
@@ -371,7 +370,7 @@ let Message = create({
     //    );
 
     let link = <Linkify component={LinkInfo} properties={{user: this.props.user, sRef: this.state.ref}}>
-      {content}
+      {eventBody}
     </Linkify>;
 
     if (this.props.info == undefined) {

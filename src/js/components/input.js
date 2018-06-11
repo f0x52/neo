@@ -171,8 +171,7 @@ let Send = create({
     };
 
     let formattedBody = msg;
-
-    formattedBody = marked(msg);
+    formattedBody = marked(msg).replace("\n", "<br/>");
 
     let body = {
       "msgtype": "m.text",
