@@ -354,7 +354,7 @@ let Message = create({
         if (item.trim() == "") {
           return null;
         }
-        return <span key={key}><ReactMarkdown source={item}/><br/></span>;
+        return <span key={key}><ReactMarkdown source={item}/></span>;
       })
     );
 
