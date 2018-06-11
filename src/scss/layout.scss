@@ -574,13 +574,29 @@ html, body {
           display: flex;
           margin: 0 4px;
 
-          p, .timestamp {
+          .markdown, .timestamp {
             margin: 5px;
             margin-bottom: 0;
           }
 
-          p {
+          .markdown {
             flex: 1;
+
+            h1, h2, h3, h4, h5, h6 {
+              margin: 2px 0;
+            }
+
+            h1 {
+              font-size: 120%;
+            }
+
+            h2 {
+              font-size: 110%;
+            }
+
+            h3, h4, h5, h6 {
+              font-size: 100%;
+            }
           }
 
           .link {

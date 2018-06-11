@@ -376,7 +376,9 @@ let Message = create({
             {replyContent}
             {media}
             <div className="flex">
-              {link}
+              <div className="markdown">
+                {link}
+              </div>
             </div>
           </div>
           <div className="replyAndTime">
