@@ -6,6 +6,7 @@ const create = require("create-react-class");
 const urllib = require('url');
 //const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
+const ReactMarkdown = require('react-markdown');
 const rfetch = require('fetch-retry');
 
 const Scroll = require("react-scroll");
@@ -342,8 +343,8 @@ let Message = create({
           eventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
         } else {
           // kinda primitive, could break on specifically formatted messages
-          let doubleNewlineIndex = event.content.body.indexOf("\n\n")+1;
-          eventBody = event.content.body.substr(doubleNewlineIndex);
+          let doubleNewlineIndex = this.props.event.content.body.indexOf("\n\n")+1;
+          eventBody = this.props.event.content.body.substr(doubleNewlineIndex);
         }
       }
     }
@@ -353,21 +354,7 @@ let Message = create({
         if (item.trim() == "") {
           return null;
         }
-        let items = item.split(" ").map((str, key) => {
-          let returnVal = str + " ";
-          highlights.some((highlight) => {
-            if (highlight == "") {
-              return false;
-            }
-            if (str.includes(highlight)) {
-              returnVal = <span key={key} className="highlight">{str} </span>;
-              return true;
-            }
-            return false;
-          });
-          return returnVal;
-        });
-        return <span key={key}>{items}<br/></span>;
+        return <span key={key}><ReactMarkdown source={item}/><br/></span>;
       })
     );
 
@@ -389,9 +376,7 @@ let Message = create({
             {replyContent}
             {media}
             <div className="flex">
-              <p>
-                {link}
-              </p>
+              {link}
             </div>
           </div>
           <div className="replyAndTime">
