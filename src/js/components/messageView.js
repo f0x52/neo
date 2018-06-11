@@ -355,8 +355,10 @@ let Message = create({
 
     let content = this.props.event.content.body;
     if (this.props.event.content.formatted_body != undefined) {
-      const saneHtml = sanitize(this.props.event.content.formatted_body, riot.sanitizeHtmlParams);
-      content = <div dangerouslySetInnerHTML={{ __html: saneHtml }} dir="auto" />;
+      let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
+      let formattedBodyWithoutReply = this.props.event.content.formatted_body.substr(endOfReplyIndex);
+      const saneHtml = sanitize(formattedBodyWithoutReply, riot.sanitizeHtmlParams);
+      content = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
     }
 
     //    let content = (
