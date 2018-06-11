@@ -6,8 +6,9 @@ const create = require("create-react-class");
 const urllib = require('url');
 //const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
-const ReactMarkdown = require('react-markdown');
 const rfetch = require('fetch-retry');
+const sanitize = require('sanitize-html');
+const riot = require('../lib/riot-utils.js');
 
 const Scroll = require("react-scroll");
 const scroll = Scroll.animateScroll;
@@ -330,6 +331,9 @@ let Message = create({
 
     let replyContent;
     if (this.props.replyTo != undefined) {
+      if (this.props.users[this.props.replyTo.sender] == undefined) {
+        this.props.users[this.props.replyTo.sender] = {display_name: this.props.replyTo.sender}; //FIXME!!!
+      }
       this.props.replyTo.reply = true;
       replyContent = (
         <div className="replyTo">
@@ -349,14 +353,20 @@ let Message = create({
       }
     }
 
-    let content = (
-      eventBody.split('\n').map((item, key) => {
-        if (item.trim() == "") {
-          return null;
-        }
-        return <span key={key}><ReactMarkdown source={item}/></span>;
-      })
-    );
+    let content = this.props.event.content.body;
+    if (this.props.event.content.formatted_body != undefined) {
+      const saneHtml = sanitize(this.props.event.content.formatted_body, riot.sanitizeHtmlParams);
+      content = <div dangerouslySetInnerHTML={{ __html: saneHtml }} dir="auto" />;
+    }
+
+    //    let content = (
+    //      eventBody.split('\n').map((item, key) => {
+    //        if (item.trim() == "") {
+    //          return null;
+    //        }
+    //        return <span key={key}><ReactMarkdown source={item}/></span>;
+    //      })
+    //    );
 
     let link = <Linkify component={LinkInfo} properties={{user: this.props.user, sRef: this.state.ref}}>
       {content}

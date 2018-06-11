@@ -34,12 +34,14 @@
     "eslint": "^4.19.1",
     "eslint-plugin-react": "^7.7.0",
     "fetch-retry": "^1.2.1",
+    "marked": "^0.4.0",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-inlinesvg": "^0.8.1",
     "react-linkify": "^0.2.2",
     "react-markdown": "^3.3.2",
     "react-scroll": "^1.7.9",
-    "react-virtualized": "^9.19.0"
+    "react-virtualized": "^9.19.0",
+    "sanitize-html": "^1.18.2"
   }
 }

@@ -5,6 +5,7 @@ const create = require("create-react-class");
 const urllib = require('url');
 const defaultValue = require('default-value');
 const rfetch = require('fetch-retry');
+const marked = require('marked');
 //const debounce = require('debounce');
 
 const Event = require('./Events.js');
@@ -169,9 +170,15 @@ let Send = create({
       origin_server_ts: Date.now()
     };
 
+    let formattedBody = msg;
+
+    formattedBody = marked(msg);
+
     let body = {
       "msgtype": "m.text",
-      "body": msg
+      "body": msg,
+      "formatted_body": formattedBody,
+      "format": "org.matrix.custom.html"
     };
 
     if (this.props.replyId) {
@@ -184,7 +191,7 @@ let Send = create({
       let replyEvent = this.props.rooms[this.props.roomId].events[this.props.replyId];
 
       let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
-      let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${msg}`;
+      let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${formattedBody}`;
 
       body = {
         "msgtype": "m.text",
