@@ -132,7 +132,9 @@ let File = create ({
           </div>
           <div className="bottom">
             Caption:<br/>
-            <input ref={this.setCaptionRef}/>
+            <form onSubmit={this.send}>
+              <input ref={this.setCaptionRef}/>
+            </form>
             <span className="onclick" onClick={this.send}>Send</span>
           </div>
         </div>
