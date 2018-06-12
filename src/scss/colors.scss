@@ -159,7 +159,7 @@ a:hover {
       .message {
         background-color: lighten($bg, 4);
 
-        .replyTo {
+        .replyTo, .markdown blockquote {
           border-left: 3px solid $blue;
         }
 
