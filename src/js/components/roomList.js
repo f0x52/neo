@@ -47,6 +47,11 @@ let List = create({
     });
   },
 
+  resetFilter: function() {
+    this.state.filterRef.value = "";
+    this.filterRooms();
+  },
+
   filterRooms: function() {
     let input = this.state.filterRef.value;
     let filteredRooms = getFilteredRooms(this.props.rooms, input);
@@ -76,6 +81,7 @@ let List = create({
         userinfo={this.props.userinfo}
         get_userinfo={this.props.get_userinfo}
         setParentState={this.props.setParentState}
+        resetFilter={this.resetFilter}
         notif={rooms[roomId].notif}
       />
     );
@@ -406,6 +412,7 @@ let InviteEntry = create({
 let RoomEntry = create({
   displayName: "RoomEntry",
   switchRoom: function() {
+    this.props.resetFilter();
     this.props.setParentState("room", this.props.id);
     let user = this.props.user;
 
