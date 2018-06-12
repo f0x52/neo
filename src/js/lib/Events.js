@@ -1,7 +1,7 @@
 'use strict';
 
 const React = require("react");
-const icons = require('./icons.js');
+const icons = require('../components/icons.js');
 
 module.exports = {
   asText: function(event) {

@@ -20,7 +20,7 @@ let options = {retries: 5, retryDelay: 200};
 let RoomList = require('./components/roomList');
 let RoomView = require('./components/messageView');
 
-let Matrix = require('./components/Matrix.js');
+let Matrix = require('./lib/Matrix.js');
 
 let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');

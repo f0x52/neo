@@ -5,7 +5,7 @@ const create = require("create-react-class");
 const Promise = require('bluebird');
 const urllib = require('url');
 
-let Event = require('./Events.js');
+let Event = require('../lib/Events.js');
 let debounce = require('debounce');
 let blank = require('../../assets/blank.jpg');
 //let neo = require('../../assets/neo.png');

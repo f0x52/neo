@@ -8,7 +8,7 @@ const rfetch = require('fetch-retry');
 const marked = require('marked');
 //const debounce = require('debounce');
 
-const Event = require('./Events.js');
+const Event = require('../lib/Events.js');
 const icons = require('./icons.js');
 
 const options = {retries: 5, retryDelay: 200};

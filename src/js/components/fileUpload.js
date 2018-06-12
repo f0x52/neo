@@ -9,7 +9,7 @@ const rfetch = require('fetch-retry');
 let options = {retries: 5, retryDelay: 200};
 const icons = require('./icons.js');
 
-let Matrix = require('./Matrix.js');
+let Matrix = require('../lib/Matrix.js');
 
 let File = create ({
   displayName: "fileUpload",

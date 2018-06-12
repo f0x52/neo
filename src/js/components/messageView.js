@@ -13,8 +13,8 @@ const riot = require('../lib/riot-utils.js');
 const Scroll = require("react-scroll");
 const scroll = Scroll.animateScroll;
 
-const Event = require('./Events.js');
-const Matrix = require('./Matrix.js');
+const Event = require('../lib/Events.js');
+const Matrix = require('../lib/Matrix.js');
 //const debounce = require('debounce');
 const blank = require('../../assets/blank.jpg');
 const icons = require('./icons.js');
