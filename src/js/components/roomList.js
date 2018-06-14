@@ -413,7 +413,7 @@ let RoomEntry = create({
   displayName: "RoomEntry",
   switchRoom: function() {
     this.props.resetFilter();
-    this.props.setParentState("room", this.props.id);
+    this.props.setParentState("roomId", this.props.id);
     let user = this.props.user;
 
     let url = urllib.format(Object.assign({}, user.hs, {
