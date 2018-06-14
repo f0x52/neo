@@ -13,6 +13,7 @@ limitations under the License.
 */
 
 const Promise = require('bluebird');
+const sanitize = require('sanitize-html');
 require("blueimp-canvas-to-blob");
 const COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -129,6 +130,10 @@ module.exports = {
     });
   },
 
+  sanitize: function(html) {
+    return sanitize(html, this.sanitizeHtmlParams);
+  },
+
   sanitizeHtmlParams: {
     allowedTags: [
       'font', // custom to matrix for IRC-style font coloring
@@ -136,6 +141,7 @@ module.exports = {
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol', 'sup', 'sub',
       'nl', 'li', 'b', 'i', 'u', 'strong', 'em', 'strike', 'code', 'hr', 'br', 'div',
       'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'span', 'img',
+      'mx-reply'
     ],
     allowedAttributes: {
       // custom ones first:

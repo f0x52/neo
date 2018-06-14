@@ -2,6 +2,7 @@
 
 const React = require("react");
 const icons = require('../components/icons.js');
+const sanitize = require('sanitize-html');
 
 module.exports = {
   asText: function(event) {
@@ -34,6 +35,10 @@ module.exports = {
         type = "[location]";
       } else if (event.content.msgtype == "m.audio") {
         type = "[audio]";
+      }
+      if (event.content.formatted_body != undefined) {
+        let saneBody = sanitize(event.content.formatted_body, {allowedTags: ['mx-reply']});
+        return <span>{type} <span dangerouslySetInnerHTML={{ __html: saneBody}} /></span>;
       }
       return <span>{type} {event.content.body}</span>;
     } else if (event.type == "m.sticker") {

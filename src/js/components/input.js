@@ -171,7 +171,9 @@ let Send = create({
     };
 
     let formattedBody = msg;
+    let stripReply = /<mx-reply>.+<\/mx-reply>/;
     formattedBody = marked(msg).trim().replace(/\n/g, "<br/>");
+    formattedBody.replace(stripReply, "");
 
     let body = {
       "msgtype": "m.text",
@@ -188,9 +190,14 @@ let Send = create({
       };
 
       let replyEvent = this.props.rooms[this.props.roomId].events[this.props.replyId];
+      let replyToBody = replyEvent.content.body;
+
+      if (replyEvent.content.formatted_body != undefined) {
+        replyToBody = replyEvent.content.formatted_body.replace(stripReply, "");
+      }
 
       let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
-      let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyEvent.content.body}</blockquote></mx-reply>${formattedBody}`;
+      let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyToBody}</blockquote></mx-reply>${formattedBody}`;
 
       body = {
         "msgtype": "m.text",

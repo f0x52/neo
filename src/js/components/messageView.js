@@ -7,7 +7,6 @@ const urllib = require('url');
 //const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
 const rfetch = require('fetch-retry');
-const sanitize = require('sanitize-html');
 const riot = require('../lib/riot-utils.js');
 
 const Scroll = require("react-scroll");
@@ -343,31 +342,12 @@ let Message = create({
           {Event.asText(this.props.replyTo)}
         </div>
       );
-      if (this.props.event.type != "m.sticker") {
-        if (formattedEventBody != undefined) {
-          let endOfReplyIndex = this.props.event.content.formatted_body.indexOf("</mx-reply>") + 11;
-          formattedEventBody = this.props.event.content.formatted_body.substr(endOfReplyIndex);
-        } else {
-          // kinda primitive, could break on specifically formatted messages
-          let doubleNewlineIndex = this.props.event.content.body.indexOf("\n\n")+1;
-          eventBody = this.props.event.content.body.substr(doubleNewlineIndex);
-        }
-      }
     }
 
     if (this.props.event.content.formatted_body != undefined) {
-      const saneHtml = sanitize(formattedEventBody, riot.sanitizeHtmlParams);
+      let saneHtml = riot.sanitize(formattedEventBody);
       eventBody = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
     }
-
-    //    let content = (
-    //      eventBody.split('\n').map((item, key) => {
-    //        if (item.trim() == "") {
-    //          return null;
-    //        }
-    //        return <span key={key}><ReactMarkdown source={item}/></span>;
-    //      })
-    //    );
 
     let link = <Linkify component={LinkInfo} properties={{user: this.props.user, sRef: this.state.ref}}>
       {eventBody}
