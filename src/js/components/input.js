@@ -6,6 +6,7 @@ const urllib = require('url');
 const defaultValue = require('default-value');
 const rfetch = require('fetch-retry');
 const marked = require('marked');
+const sanitize = require('sanitize-html');
 //const debounce = require('debounce');
 
 const Event = require('../lib/Events.js');
@@ -161,7 +162,7 @@ let Send = create({
     }));
 
     let msgId = this.state.count;
-    let rooms = this.props.rooms;
+    let rooms = this.props.localState.rooms;
     let roomId = this.props.roomId;
     let room = rooms[roomId];
     let roomUnsent = defaultValue(room.unsentEvents, {});
@@ -175,9 +176,11 @@ let Send = create({
     formattedBody = marked(msg).trim().replace(/\n/g, "<br/>");
     formattedBody.replace(stripReply, "");
 
+    let eventBody = sanitize(msg, {allowedTags: []});
+
     let body = {
       "msgtype": "m.text",
-      "body": msg,
+      "body": eventBody,
       "formatted_body": formattedBody,
       "format": "org.matrix.custom.html"
     };
@@ -189,14 +192,14 @@ let Send = create({
         }
       };
 
-      let replyEvent = this.props.rooms[this.props.roomId].events[this.props.replyId];
+      let replyEvent = this.props.localState.rooms[this.props.roomId].events[this.props.replyId];
       let replyToBody = replyEvent.content.body;
 
       if (replyEvent.content.formatted_body != undefined) {
         replyToBody = replyEvent.content.formatted_body.replace(stripReply, "");
       }
 
-      let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${msg}`;
+      let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${eventBody}`;
       let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyToBody}</blockquote></mx-reply>${formattedBody}`;
 
       body = {
@@ -216,11 +219,12 @@ let Send = create({
       count: this.state.count+1
     });
 
-    room.unsentEvents = roomUnsent;
-    rooms[roomId] = room;
-    this.props.setParentState("rooms", rooms);
+    //FIXME: LOCALECHO
+    //room.unsentEvents = roomUnsent;
+    //rooms[roomId] = room;
+    //this.props.setParentState("rooms", rooms);
 
-    this.props.setParentState("replyId", undefined);
+    this.props.setGlobalState("replyId", undefined);
     rfetch(url, {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -230,14 +234,14 @@ let Send = create({
     }, options).then(res => res.json())
       .catch(error => console.error('Error:', error))
       .then(response => {
-        let roomUnsent = this.props.rooms[roomId].unsentEvents;
+        //let roomUnsent = this.props.localState.rooms[roomId].unsentEvents;
         console.log('Success:', response);
-        roomUnsent[msgId].sent = true;
-        roomUnsent[msgId].id = response.event_id;
+        //roomUnsent[msgId].sent = true;
+        //roomUnsent[msgId].id = response.event_id;
 
-        room.unsentEvents = roomUnsent;
-        rooms[roomId] = room;
-        this.props.setParentState("rooms", rooms);
+        //room.unsentEvents = roomUnsent;
+        //rooms[roomId] = room;
+        //this.props.setParentState("rooms", rooms);
       });
   },
 
@@ -263,7 +267,7 @@ let Send = create({
           }
         </div>);
     } else if (this.props.replyId) {
-      let replyEvent = this.props.rooms[this.props.roomId].events[this.props.replyId];
+      let replyEvent = this.props.localState.rooms[this.props.roomId].events[this.props.replyId];
 
       replyTo = (
         <div className="reply">
@@ -271,7 +275,7 @@ let Send = create({
             {icons.reply}
           </span>
           {Event.asText(replyEvent)}
-          <span className="onclick close" onClick={() => this.props.setParentState("replyId", undefined)}>
+          <span className="onclick close" onClick={() => this.props.setGlobalState("replyId", undefined)}>
             {icons.close}
           </span>
         </div>
@@ -284,12 +288,8 @@ let Send = create({
           <img src={icon.file.dark} id="file" className="dark"/>
           <img src={icon.file.light} id="file" className="light"/>
         </label>
-        <File
-          room={this.props.roomId}
-          rooms={this.props.rooms}
-          user={this.props.user}
-          unsentEvents={this.props.unsentEvents}
-          setParentState={this.props.setParentState}
+        <File {...this.props}
+          rooms={this.props.localState.rooms}
         />
         {replyTo}
         {completions}

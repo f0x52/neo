@@ -57,7 +57,7 @@ let MessageView = create({
       className += " split";
     }
 
-    let room = this.props.rooms[this.props.roomId];
+    let room = this.props.localState.rooms[this.props.roomId];
     let events = room.events;
 
     if (this.props.roomId == 0 || events == undefined) {
@@ -99,7 +99,6 @@ let MessageView = create({
         return (
           <Message
             key={event.event_id}
-            info={this.props.userinfo[event.sender]}
             id={event.sender}
             event={event}
             source={event.sender == this.props.user.user_id ? "out" : "in"}
@@ -158,7 +157,7 @@ let Userlist = create({
     let object = e.target;
     if (object.scrollHeight - object.scrollTop - object.clientHeight < 100) {
       let userPagination = this.state.userPagination + 50;
-      let userListLength = Object.keys(this.props.rooms[this.props.roomId].users).length;
+      let userListLength = Object.keys(this.props.localState.rooms[this.props.roomId].users).length;
       if (userPagination > userListLength) {
         userPagination = userListLength;
       }
@@ -170,8 +169,8 @@ let Userlist = create({
   
   render: function() {
     let userlist;
-    if (this.props.rooms[this.props.roomId] != undefined) {
-      let users = this.props.rooms[this.props.roomId].users;
+    if (this.props.localState.rooms[this.props.roomId] != undefined) {
+      let users = this.props.localState.rooms[this.props.roomId].users;
       if (users == undefined) {
         return null;
       }
@@ -353,17 +352,14 @@ let Message = create({
       {eventBody}
     </Linkify>;
 
-    if (this.props.info == undefined) {
-      console.log("can't get info for", this.props.id);
-      return null;
-    }
+    let senderInfo = this.props.userInfo(this.props.event.sender);
 
     return (
       <div className={"line " + this.props.source} ref={this.setRef} onContextMenu={(e) => {e.preventDefault(); console.log("event:", this.props.event);}} >
-        <img id="avatar" src={this.props.info.img} onError={(e)=>{e.target.src = blank;}}/>
+        <img id="avatar" src={senderInfo.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div className="messageContainer">
-            <b title={this.props.id}>{this.props.info.display_name}</b>
+            <b title={this.props.id}>{senderInfo.display_name}</b>
             {replyContent}
             {media}
             <div className="flex">

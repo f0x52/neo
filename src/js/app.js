@@ -7,14 +7,10 @@ const rfetch = require('fetch-retry');
 
 require('../scss/layout.scss');
 
-let uniq = require('arr-uniq');
-let defaultValue = require('default-value');
 let create = require('create-react-class');
 let urllib = require('url');
 
 let options = {retries: 5, retryDelay: 200};
-
-//let persistLocalStorage = require('./lib/persist-local-storage');
 
 // Components
 let RoomList = require('./components/roomList');
@@ -26,41 +22,30 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.06";
-
-let icon = {
-  file: {
-    dark: require('../assets/dark/file.svg'),
-    light: require('../assets/light/file.svg')
-  },
-  send: {
-    dark: require('../assets/dark/send.svg'),
-    light: require('../assets/light/send.svg')
-  },
-  hamburger: {
-    dark: require('../assets/dark/hamburger.svg')
-  }
-};
+let VERSION = "alpha0.07-dev";
 
 let App = create({
   displayName: "App",
   getInitialState: function() {
     let user = {};
-    let userinfo = {};
-    let rooms = {};
-    let invites = {};
-    if(localStorage.getItem("version") == VERSION && localStorage.getItem("logout") != "true") {
+    let localState = {
+      userInfo: {},
+      rooms: {},
+      invites: {
+        open: {},
+        closed: []
+      }
+    };
+
+    if(localStorage.getItem("version") == VERSION) {
       user = JSON.parse(localStorage.getItem("user"));
-      userinfo = JSON.parse(localStorage.getItem("userinfo"));
-      invites = JSON.parse(localStorage.getItem("invites"));
+      localState = JSON.parse(localStorage.getItem("localState"));
       console.log("loaded user data from storage");
     }
+
     return({
       user: user,
-      userinfo: userinfo,
-      rooms: rooms,
-      invites: invites,
-      handledInvites: {},
+      localState: localState,
       loading: 0,
       roomId: 0,
       backlog: 0
@@ -74,9 +59,9 @@ let App = create({
   },
 
   loginCallback: function(json) {
-    this.get_userinfo(json.user_id, json);
-    json.username = json.user_id.split(':')[0].substr(1);
-    json.settings = {
+    let user = json;
+    user.username = user.user_id.split(':')[0].substr(1);
+    user.settings = {
       bool: {
         split: false,
         bubbles: false
@@ -86,23 +71,47 @@ let App = create({
       }
     };
     localStorage.setItem("version", VERSION);
-    localStorage.setItem("logout", "false");
-    localStorage.setItem("user", JSON.stringify(json));
-    localStorage.setItem("invites", "{}");
+    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("localState", JSON.stringify(this.state.localState));
+
     this.setState({
-      user: json,
+      user: user,
     });
+
     this.initialSync();
   },
 
-  get_userinfo: function(id, user) {
+  userInfo: function(userId) {
+    if (this.state.localState.userInfo[userId] != undefined) {
+      return this.state.localState.userInfo[userId];
+    } 
+    Matrix.userInfo.get(this.state.user, userId)
+      .then((userInfo) => {
+        let localState = this.state.localState;
+        localState.userInfo[userId] = userInfo;
+        localStorage.setItem("localState", JSON.stringify(localState));
+        this.setState({localState: localState});
+        return null;
+      })
+      .catch((err) => {
+        console.error("Error fetching", userId, err);
+      });
+
+    let userInfo = {display_name: userId, img: blank};
+    let localState = this.state.localState;
+    localState.userInfo[userId] = userInfo;
+    this.setState({localState: localState});
+    return userInfo;
+  },
+
+  get_userinfo: function(id, user) { // Should only be neccessary in edgecases
     let userState = this.state.user;
     if (user != undefined) {
       userState = user;
     }
-    let userinfo = this.state.userinfo;
-    userinfo[id] = {display_name: id, img: blank};
-    this.setState({userinfo: userinfo});
+    let localState = this.state.localState;
+    localState.userInfo[id] = {display_name: id, img: blank};
+    this.setState({localState: localState});
 
     let url = urllib.format(Object.assign({}, userState.hs, {
       pathname: `/_matrix/client/r0/profile/${id}/displayname`,
@@ -115,10 +124,10 @@ let App = create({
       .then(response => response.json())
       .then(responseJson => {
         if (responseJson.displayname != undefined) {
-          userinfo = this.state.userinfo;
-          userinfo[id].display_name = responseJson.displayname;
-          this.setState({userinfo: userinfo});
-          localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
+          let localState = this.state.localState;
+          localState.userInfo[id].display_name = responseJson.displayname;
+          this.setState({localState: localState});
+          localStorage.setItem("localState", JSON.stringify(this.state.localState));
         }
       });
 
@@ -134,15 +143,15 @@ let App = create({
       .then(responseJson => {
         if(responseJson.errcode == undefined &&
           responseJson.avatar_url != undefined) {
-          userinfo = this.state.userinfo;
-          userinfo[id].img = Matrix.m_thumbnail(userState.hs, responseJson.avatar_url, 64, 64);
-          this.setState({userinfo: userinfo});
-          localStorage.setItem("userinfo", JSON.stringify(this.state.userinfo));
+          let localState = this.state.localState;
+          localState.userInfo[id].img = Matrix.m_thumbnail(userState.hs, responseJson.avatar_url, 64, 64);
+          this.setState({localState: localState});
+          localStorage.setItem("localState", JSON.stringify(this.state.localState));
         }
       });
   },
 
-  setStateFromChild: function(prop, value) {
+  setGlobalState: function(prop, value) {
     this.setState({
       [prop]: value
     });
@@ -158,20 +167,37 @@ let App = create({
 
   initialSync: function() {
     Matrix.initialSyncRequest(this.state.user)
-      .then((localRooms) => {
-        this.setState({
-          rooms: localRooms
+      .then((returnArray) => {
+        let localState = this.state.localState;
+        Object.assign(localState, {
+          rooms: returnArray[0],
+          userInfo: returnArray[1]
         });
 
+        this.setState({
+          localState: localState
+        });
+
+        localStorage.setItem("localState", JSON.stringify(localState));
         this.sync();
-      }); //retry on fail
+      })
+      .catch((error) => {
+        console.error('Error:', error);
+        console.error("RETRY initialSync");
+        this.initialSync();
+      });
   },
 
   sync: function() {
-    Matrix.syncRequest(this.state.user, this.state.rooms, this.state.invites).then((syncedRooms) => {
-      this.setState({
+    Matrix.syncRequest(this.state.user, this.state.localState).then((syncedRooms) => {
+      let localState = this.state.localState;
+      Object.assign(localState, {
         rooms: syncedRooms[0],
         invites: syncedRooms[1]
+      });
+
+      this.setState({
+        localState: localState
       });
 
       // Auto kicker, use at own risk!
@@ -188,60 +214,29 @@ let App = create({
       //  });
       //});
 
-
+      localStorage.setItem("localState", JSON.stringify(localState));
       setTimeout(this.sync(), 200);
     });
   },
 
-  addMessages: function (roomId, messages) {
-    let concatenatedMessages = defaultValue(this.state.messages[roomId], []).concat(messages);
-    let uniqueMessages = uniq(concatenatedMessages, uniqEvents).sort(sortEvents);
-
-    /* FIXME: This should set state as well. */
-
-    return uniqueMessages;
-  },
-
-  getBacklog: function(roomId) {
-    let messages = this.state.messages;
-    let rooms = this.state.rooms;
-    let from = rooms[roomId].prev_batch;
-
-    let reqUrl = urllib.format(Object.assign({}, this.state.user.hs, {
-      pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
-      query: {
-        from: from,
-        limit: 50,
-        dir: "b",
-        access_token: this.state.user.access_token
-      }
-    }));
-
-    rfetch(reqUrl, options)
-      .then((response) => response.json())
-      .then((responseJson) => {
-        let combinedMessages = this.addMessages(roomId, responseJson.chunk);
-        messages[roomId] = combinedMessages;
-
-        rooms[roomId].prev_batch = responseJson.end;
-        this.setState({
-          messages: messages,
-          rooms: rooms,
-        });
-      });
-  },
-
   removeInvite: function(roomId) {
-    let invites = this.state.invites;
-    let handledInvites = this.state.handledInvites;
-    delete invites[roomId];
-    handledInvites[roomId] = true;
+    let localState = this.state.localState;
+    let openInvites = localState.invites.open;
+    let closedInvites = localState.invites.closed;
+    delete openInvites[roomId];
+    closedInvites[roomId] = true;
+
+    Object.assign(localState, {
+      invites: {
+        open: openInvites,
+        closed: closedInvites
+      }
+    });
 
     this.setState({
-      invites: invites,
-      handledInvites: handledInvites
+      localState: localState
     });
-    localStorage.setItem("invites", JSON.stringify(invites));
+    localStorage.setItem("localState", JSON.stringify(localState));
   },
 
   render: function() {
@@ -255,8 +250,7 @@ let App = create({
           {loading}
           <Login
             loginCallback={this.loginCallback}
-            setLoading={this.setLoading}
-            setParentState={this.setStateFromChild}
+            setGlobalState={this.setGlobalState}
           />
         </div>
       );
@@ -264,24 +258,19 @@ let App = create({
 
     let view;
     if (this.state.roomId != 0) {
-      let usercount = Object.keys(this.state.rooms[this.state.roomId].users).length;
+      let usercount = Object.keys(this.state.localState.rooms[this.state.roomId].users).length;
       view = (
         <React.Fragment>
           <div className="info">
             <b>
-              {this.state.rooms[this.state.roomId].info.name}
+              {this.state.localState.rooms[this.state.roomId].info.name}
             </b><br/>
             {usercount} member{usercount > 1 && "s"}
           </div>
-          <RoomView
+          <RoomView {...this.state}
             backlog={this.getBacklog}
-            roomId={this.state.roomId}
-            rooms={this.state.rooms}
-            user={this.state.user}
-            userinfo={this.state.userinfo}
-            get_userinfo={this.get_userinfo}
-            setParentState={this.setStateFromChild}
-            replyId={this.state.replyId}
+            userInfo={this.userInfo}
+            setGlobalState={this.setGlobalState}
           />
         </React.Fragment>
       );
@@ -292,13 +281,11 @@ let App = create({
         <div>{loading}</div>
         <RoomList
           roomId={this.state.roomId}
-          rooms={this.state.rooms}
-          invites={this.state.invites}
+          localState={this.state.localState}
           user={this.state.user}
-          userinfo={this.state.userinfo}
           get_userinfo={this.get_userinfo}
-          setParentState={this.setStateFromChild}
-          icon={icon}
+          userInfo={this.userInfo}
+          setGlobalState={this.setGlobalState}
           logout={this.logout}
           removeInvite={this.removeInvite}
         />
@@ -355,7 +342,7 @@ let Login = create({
 
   login: function(event) {
     event.preventDefault();
-    this.props.setParentState("loading", 1);
+    this.props.setGlobalState("loading", 1);
     let homeserver = urllib.parse(this.state.homeserver); //TODO: Error handling
     let data = {
       "user": this.state.user,
@@ -381,23 +368,15 @@ let Login = create({
           responseJson.hs = homeserver;
           this.props.loginCallback(responseJson);
         }
-        this.props.setParentState("loading", 0);
+        this.props.setGlobalState("loading", 0);
       })
       .catch((error) => {
         this.setState({json: {error: "Error contacting homeserver"}});
         console.error(error);
-        this.props.setParentState("loading", 0);
+        this.props.setGlobalState("loading", 0);
       });
   }
 });
-
-function sortEvents(a, b) {
-  return a.origin_server_ts-b.origin_server_ts;
-}
-
-function uniqEvents(a, b) {
-  return a.event_id === b.event_id;
-}
 
 ReactDOM.render(
   <App />,

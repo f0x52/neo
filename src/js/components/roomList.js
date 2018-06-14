@@ -8,6 +8,7 @@ const urllib = require('url');
 let Event = require('../lib/Events.js');
 let debounce = require('debounce');
 let blank = require('../../assets/blank.jpg');
+let icons = require('./icons.js');
 //let neo = require('../../assets/neo.png');
 
 let List = create({
@@ -15,7 +16,8 @@ let List = create({
   getInitialState: function() {
     return({
       menu: false,
-      element: null
+      element: null,
+      filteredRooms: []
     });
   },
 
@@ -43,7 +45,7 @@ let List = create({
 
   getDerivedStateFromProps: function(props) {
     return ({
-      filteredRooms: props.rooms
+      filteredRooms: Object.keys(props.localState.rooms)
     });
   },
 
@@ -54,63 +56,53 @@ let List = create({
 
   filterRooms: function() {
     let input = this.state.filterRef.value;
-    let filteredRooms = getFilteredRooms(this.props.rooms, input);
+    let filteredRooms = getFilteredRooms(this.props.localState.rooms, input);
     this.setState({filteredRooms: filteredRooms});
   },
 
   render: function() {
-    let rooms = this.state.filteredRooms;
-    if (rooms == undefined || Object.keys(rooms).length == 0) {
-      rooms = this.props.rooms;
-    }
+    let rooms = this.props.localState.rooms;
     let sortedRooms = Object.keys(rooms).sort(
       function(a, b) {
         return rooms[b].lastEvent.origin_server_ts - rooms[a].lastEvent.origin_server_ts;
       }
     );
-    let list = sortedRooms.map((roomId) =>
-      <RoomEntry
-        lastEvent={rooms[roomId].lastEvent}
-        rooms={this.props.rooms}
-        filteredRooms={this.state.filteredRooms}
-        roomId={roomId}
-        active={this.props.roomId == roomId}
-        key={roomId}
-        id={roomId}
-        user={this.props.user}
-        userinfo={this.props.userinfo}
-        get_userinfo={this.props.get_userinfo}
-        setParentState={this.props.setParentState}
-        resetFilter={this.resetFilter}
-        notif={rooms[roomId].notif}
-      />
-    );
+    let list = sortedRooms.map((roomId) => {
+      if (this.state.filteredRooms[roomId] == false) {
+        return null;
+      }
+      return (
+        <RoomEntry {...this.props}
+          lastEvent={rooms[roomId].lastEvent}
+          filteredRooms={this.state.filteredRooms}
+          roomId={roomId}
+          active={this.props.roomId == roomId}
+          key={roomId}
+          id={roomId}
+          resetFilter={this.resetFilter}
+          notif={rooms[roomId].notif}
+        />
+      );
+    });
 
     return(
       <React.Fragment>
         <div className="darken" />
         <div className="list no-select" id="list">
           <div className="header">
-            <img src={this.props.icon.hamburger.dark} alt="menu" onClick={this.toggleMenu}/>
+            <span onClick={this.toggleMenu}>{icons.hamburger}</span>
             {/*<span>Neo</span> {/* Can be used for search later*/}
             <div>
               <input ref={this.setFilterRef} type="text"/>
             </div>
           </div>
-          <Menu
+          <Menu {...this.props}
             menu={this.state.menu}
             setParentState={this.setStateFromChild}
-            logout={this.props.logout}
-            user={this.props.user}
-            setUser={this.props.setParentState}
-            userinfo={this.props.userinfo}
+            setUser={this.props.setGlobalState}
           />
           <div className="scroll">
-            <Invites 
-              invites={this.props.invites}
-              user={this.props.user}
-              userinfo={this.props.userinfo}
-              get_userinfo={this.props.get_userinfo}
+            <Invites {...this.props}
               remove={this.props.removeInvite}
             />
             <div className="joinedRooms">
@@ -165,8 +157,8 @@ let Menu = create({
       <React.Fragment>
         <div style={style} id="menu">
           <div id="user">
-            <img src={this.props.userinfo[this.props.user.user_id].img}/>
-            <span>{this.props.userinfo[this.props.user.user_id].display_name}</span>
+            <img src={this.props.userInfo(this.props.user.user_id).img}/>
+            <span>{this.props.userInfo(this.props.user.user_id).display_name}</span>
           </div>
           {/*<div>New Room</div>*/}
           <div onClick={this.join}>Join Room</div>
@@ -297,7 +289,7 @@ let Join = create({
 let Invites = create({
   displayName: "Invites",
   render: function() {
-    let invites = this.props.invites;
+    let invites = this.props.localState.invites.open;
     if (invites == null) {
       return null;
     }
@@ -306,12 +298,10 @@ let Invites = create({
       return null;
     }
     let list = inviteKeys.map((roomId) => 
-      <InviteEntry
+      <InviteEntry {...this.props}
         key={roomId}
         roomId={roomId}
         user={this.props.user}
-        userinfo={this.props.userinfo}
-        get_userinfo={this.props.get_userinfo}
         invite={invites[roomId]}
         remove={() => this.props.remove(roomId)}
       />
@@ -326,12 +316,6 @@ let Invites = create({
 
 let InviteEntry = create({
   displayName: "InviteEntry",
-  getInitialState: function() {
-    if (this.props.userinfo[this.props.invite.invitedBy] == undefined && this.props.invite.invitedBy != null) {
-      this.props.get_userinfo(this.props.invite.invitedBy);
-    }
-    return {};
-  },
 
   accept: function() {
     let id = this.props.roomId;
@@ -381,8 +365,8 @@ let InviteEntry = create({
 
   render: function() {
     let msg = "";
-    if (this.props.invite.invitedBy != null && this.props.userinfo[this.props.invite.invitedBy] != undefined) {
-      msg = <React.Fragment><b>{this.props.userinfo[this.props.invite.invitedBy].display_name}</b> invited you</React.Fragment>;
+    if (this.props.invite.invitedBy != null) {
+      msg = <React.Fragment><b>{this.props.userInfo(this.props.invite.invitedBy).display_name}</b> invited you</React.Fragment>;
     }
     return(
       <div
@@ -413,7 +397,7 @@ let RoomEntry = create({
   displayName: "RoomEntry",
   switchRoom: function() {
     this.props.resetFilter();
-    this.props.setParentState("roomId", this.props.id);
+    this.props.setGlobalState("roomId", this.props.id);
     let user = this.props.user;
 
     let url = urllib.format(Object.assign({}, user.hs, {
@@ -429,15 +413,12 @@ let RoomEntry = create({
       },
       method: 'POST',
     });
-    let rooms = this.props.rooms;
-    rooms[this.props.id].notif = {unread: 0, highlight: 0};
-    this.props.setParentState("rooms", rooms);
+    //let rooms = this.props.rooms;
+    //rooms[this.props.id].notif = {unread: 0, highlight: 0};
+    //this.props.setGlobalState("rooms", rooms);
   },
 
   render: function() {
-    //if (this.props.rooms[this.props.id].users.length == 0) {
-    //  return null;
-    //}
     let time = new Date(this.props.lastEvent.origin_server_ts);
     let now = new Date();
     let time_string;
@@ -449,10 +430,7 @@ let RoomEntry = create({
         "." + time.getDay().toString().padStart(2, "0") +
         "." + time.getFullYear();
     }
-    if (this.props.userinfo[this.props.lastEvent.sender] == undefined) {
-      this.props.get_userinfo(this.props.lastEvent.sender);
-    }
-    let user = this.props.userinfo[this.props.lastEvent.sender].display_name;
+    let user = this.props.userInfo(this.props.lastEvent.sender).display_name;
     let unread_count = this.props.notif.unread;
     if (this.props.notif.highlight > 0) {
       unread_count = "@";
@@ -464,7 +442,7 @@ let RoomEntry = create({
       classes += "wrapUnread";
     }
 
-    let currentRoomInfo = this.props.rooms[this.props.roomId].info;
+    let currentRoomInfo = this.props.localState.rooms[this.props.roomId].info;
     return (
       <div
         id="room_item"
@@ -518,7 +496,7 @@ function getFilteredRooms(list, str) {
   Object.keys(list).forEach((roomId) => {
     let completion = list[roomId].info.name;
     if (completion.toUpperCase().includes(str)) {
-      completionList[roomId] = list[roomId];
+      completionList[roomId] = true;
     }
   });
   return(completionList);

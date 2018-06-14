@@ -12,7 +12,7 @@ const options = {retries: 5, retryDelay: 200};
 
 const blank = require('../../assets/blank.jpg');
 
-module.exports = {
+let Matrix = {
   initialSyncRequest: function(user) {
     console.log("neo: initialSyncRequest");
     return new Promise((resolve, reject) => {
@@ -24,14 +24,14 @@ module.exports = {
         }
       }));
 
-      rfetch(url, options)
+      return rfetch(url, options)
         .then((response) => response.json())
         .catch((error) => {
           console.error('Error:', error);
           reject(error);
         })
         .then((responseJson) => {
-          Promise.map(responseJson.joined_rooms, (roomId) => {
+          return Promise.map(responseJson.joined_rooms, (roomId) => {
             // Get backlog and userlist for all rooms
             return this.getRoomInfo(user, roomId);
           })
@@ -46,6 +46,7 @@ module.exports = {
                 ]);
               })
                 .then((roomDetails) => {
+                  let userInfo = {};
                   roomDetails.forEach((roomDetail) => {
                     let roomInfo = roomDetail[0];
                     let roomId = roomInfo[0];
@@ -58,10 +59,16 @@ module.exports = {
                       name: roomDetail[1][0],
                       avatar: roomDetail[1][1]
                     };
+
+                    Object.keys(localUsers).forEach((userId) => {
+                      let userData = localUsers[userId];
+                      userInfo[userId] = userData;
+                    });
+
                   });
 
                   console.log("neo: done getting all backlog/userlists");
-                  resolve(localRooms);
+                  resolve([localRooms, userInfo]);
                 });
             });
         });
@@ -87,7 +94,7 @@ module.exports = {
         }
       }));
 
-      rfetch(url, options)
+      return rfetch(url, options)
         .then((response) => response.json())
         .catch((error) => {
           console.error('Error:', error);
@@ -269,8 +276,7 @@ module.exports = {
     });
   },
 
-  syncRequest: function(user, localRooms, localInvites) {
-    console.log("neo: syncRequest");
+  syncRequest: function(user, localState) {
     return new Promise((resolve, reject) => {
       let url = Object.assign({}, user.hs, {
         pathname: "/_matrix/client/r0/sync",
@@ -284,7 +290,7 @@ module.exports = {
         url.query.since = user.next_batch;
       }
 
-      rfetch(urllib.format(url), options)
+      return rfetch(urllib.format(url), options)
         .then((response) => response.json())
         .catch((error) => {
           console.error('Error:', error);
@@ -298,8 +304,8 @@ module.exports = {
           
           let remoteRooms = responseJson.rooms.join;
 
-          Promise.map(Object.keys(remoteRooms), (roomId) => {
-            let localRoom = localRooms[roomId];
+          return Promise.map(Object.keys(remoteRooms), (roomId) => {
+            let localRoom = localState.rooms[roomId];
 
             return new Promise((resolve, reject) => {
               if (localRoom == undefined) {
@@ -346,12 +352,12 @@ module.exports = {
             localRoomsArray.forEach((localRoomInfo) => {
               let roomId = localRoomInfo[0];
               let localRoom = localRoomInfo[1];
-              localRooms[roomId] = localRoom;
+              localState.rooms[roomId] = localRoom;
             });
 
             let remoteInvites = responseJson.rooms.invite;
-            localInvites = this.parseInvites(user, localInvites, remoteInvites);
-            resolve([localRooms, localInvites]);
+            let localInvites = this.parseInvites(user, localState.invites, remoteInvites);
+            resolve([localState.rooms, localInvites]);
           });
         });
     });
@@ -416,30 +422,30 @@ module.exports = {
     return unsentEvents;
   },
 
-  parseInvites: function(user, invites, remoteInvites) {
-    let localInvites = {};
+  parseInvites: function(user, localInvites, remoteInvites) {
     Object.keys(remoteInvites).forEach((inviteId) => {
-      if (localInvites[inviteId] == undefined) {
-        //invites will stay in /sync until handled
-      }
-      let remoteInvite = remoteInvites[inviteId];
-      let name = inviteId;
-      let avatar = blank;
-      let invitedBy = null;
+      // Check if invite wasn't already handled
+      // invites will stay in /sync until handled
+      if (localInvites.closed[inviteId] == undefined) {
+        let remoteInvite = remoteInvites[inviteId];
+        let name = inviteId;
+        let avatar = blank;
+        let invitedBy = null;
 
-      Object.keys(remoteInvite.invite_state.events).forEach((eventId) => {
-        let event = remoteInvite.invite_state.events[eventId];
-        if (event.type == "m.room.name") {
-          name = event.content.name; //Should fallback to alias/pm username
-        } else if (event.type == "m.room.avatar") {
-          avatar = this.m_download(user.hs, event.content.url);
-        } else if (event.type == "m.room.member") {
-          if (event.content.membership == "invite") {
-            invitedBy = event.sender;
+        Object.keys(remoteInvite.invite_state.events).forEach((eventId) => {
+          let event = remoteInvite.invite_state.events[eventId];
+          if (event.type == "m.room.name") {
+            name = event.content.name; //Should fallback to alias/pm username
+          } else if (event.type == "m.room.avatar") {
+            avatar = this.m_download(user.hs, event.content.url);
+          } else if (event.type == "m.room.member") {
+            if (event.content.membership == "invite") {
+              invitedBy = event.sender;
+            }
           }
-        }
-      });
-      localInvites[inviteId] = {display_name: name, avatar: avatar, invitedBy: invitedBy};
+        });
+        localInvites.open[inviteId] = {display_name: name, avatar: avatar, invitedBy: invitedBy};
+      }
     });
     return localInvites;
   },
@@ -459,7 +465,7 @@ module.exports = {
         body: body
       };
 
-      rfetch(url, {
+      return rfetch(url, {
         method: 'PUT',
         body: JSON.stringify(body),
         headers: new Headers({
@@ -488,7 +494,7 @@ module.exports = {
         "user_id": userId
       };
 
-      rfetch(url, {
+      return rfetch(url, {
         method: 'POST',
         body: JSON.stringify(body),
         headers: new Headers({
@@ -519,15 +525,61 @@ module.exports = {
     }));
   },
 
-  userInfo: function(info) {
-    this.info = info;
-    
-    this.setAvatar = function(userId, src) {
-      this.info[userId] = Object.assign(defaultValue(this.info[userId], {}), {img: src});
+  userInfo: {
+    get: function(user, userId) {
+      return new Promise((resolve) => {
+        return Promise.all([
+          this.getName(user, userId),
+          this.getImg(user, userId)
+        ])
+          .then((userInfoArray) => {
+            resolve({display_name: userInfoArray[0], img: userInfoArray[1]});
+          })
+          .catch((err) => {
+            console.error("Error fetching", userId, err);
+          });
+      });
     },
 
-    this.getAvatar = function(userId) {
-      return defaultValue(this.info[userId].img, blank);
-    };
+    getName: function(user, userId) {
+      return new Promise((resolve, reject) => {
+        let url = urllib.format(Object.assign({}, user.hs, {
+          pathname: `/_matrix/client/r0/profile/${userId}/displayname`,
+          query: {
+            access_token: user.access_token
+          }
+        }));
+
+        return rfetch(url, options)
+          .then(response => response.json())
+          .then(responseJson => {
+            if (responseJson.displayname != undefined) {
+              resolve(responseJson.displayname);
+            }
+          });
+      });
+    },
+
+    getImg: function(user, userId) {
+      return new Promise((resolve, reject) => {
+        let url = urllib.format(Object.assign({}, user.hs, {
+          pathname: `/_matrix/client/r0/profile/${userId}/avatar_url`,
+          query: {
+            access_token: user.access_token
+          }
+        }));
+
+        return rfetch(url, options)
+          .then(response => response.json())
+          .then(responseJson => {
+            if(responseJson.errcode == undefined &&
+              responseJson.avatar_url != undefined) {
+              resolve(Matrix.m_thumbnail(user.hs, responseJson.avatar_url, 64, 64));
+            }
+          });
+      });
+    }
   }
 };
+
+module.exports = Matrix;
