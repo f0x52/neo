@@ -276,6 +276,8 @@ mx-reply {
       flex-direction: column;
       height: 95vh;
       max-height: 95vh;
+      min-height: 0;
+      min-width: 0;
 
       .messagesScrollViewWrapper {
         overflow-y: auto;
