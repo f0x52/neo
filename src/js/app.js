@@ -62,7 +62,7 @@ let App = create({
       invites: invites,
       handledInvites: {},
       loading: 0,
-      room: 0,
+      roomId: 0,
       backlog: 0
     });
   },
@@ -263,19 +263,19 @@ let App = create({
     }
 
     let view;
-    if (this.state.room != 0) {
-      let usercount = Object.keys(this.state.rooms[this.state.room].users).length;
+    if (this.state.roomId != 0) {
+      let usercount = Object.keys(this.state.rooms[this.state.roomId].users).length;
       view = (
         <React.Fragment>
           <div className="info">
             <b>
-              {this.state.rooms[this.state.room].info.name}
+              {this.state.rooms[this.state.roomId].info.name}
             </b><br/>
             {usercount} member{usercount > 1 && "s"}
           </div>
           <RoomView
             backlog={this.getBacklog}
-            roomId={this.state.room}
+            roomId={this.state.roomId}
             rooms={this.state.rooms}
             user={this.state.user}
             userinfo={this.state.userinfo}
@@ -291,7 +291,7 @@ let App = create({
       <div className="main">
         <div>{loading}</div>
         <RoomList
-          room={this.state.room}
+          roomId={this.state.roomId}
           rooms={this.state.rooms}
           invites={this.state.invites}
           user={this.state.user}

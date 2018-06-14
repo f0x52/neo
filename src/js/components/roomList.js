@@ -74,7 +74,7 @@ let List = create({
         rooms={this.props.rooms}
         filteredRooms={this.state.filteredRooms}
         roomId={roomId}
-        active={this.props.room == roomId}
+        active={this.props.roomId == roomId}
         key={roomId}
         id={roomId}
         user={this.props.user}
