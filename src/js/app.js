@@ -171,7 +171,7 @@ let App = create({
     console.log("doing a backfill for", roomId);
     return new Promise((resolve) => {
       let localRoom = this.state.localState.rooms[roomId];
-      return Matrix.getMessages(this.state.user, roomId, {limit: 500000, dir: "f", from: this.state.user.next_batch})
+      return Matrix.getMessages(this.state.user, roomId, {limit: 500, dir: "b", from: this.state.user.prev_batch})
         .then((newEvents) => {
           resolve(Matrix.parseEvents(localRoom, newEvents));
         });
