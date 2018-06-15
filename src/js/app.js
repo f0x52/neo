@@ -2,7 +2,7 @@
 
 const React = require('react');
 const ReactDOM = require('react-dom');
-//const Promise = require('bluebird');
+const Promise = require('bluebird');
 const rfetch = require('fetch-retry');
 
 require('../scss/layout.scss');
@@ -22,7 +22,7 @@ let neo = require('../assets/neo_full.png');
 let blank = require('../assets/blank.jpg');
 let loadingGif = require('../assets/loading.gif');
 
-let VERSION = "alpha0.07-dev";
+let VERSION = "alpha0.07-dev1";
 
 let App = create({
   displayName: "App",
@@ -54,7 +54,8 @@ let App = create({
 
   componentDidMount: function() {
     if (this.state.user.access_token != undefined) {
-      this.initialSync();
+      this.backfill()
+      .then(() => this.sync());
     }
   },
 
@@ -165,6 +166,36 @@ let App = create({
     });
   },
 
+  backfill: function() {
+    console.log("doing a backfill");
+    return Promise.map(Object.keys(this.state.localState.rooms), (roomId) => {
+      let localRoom = this.state.localState.rooms[roomId];
+      return Promise.all([
+        roomId,
+        Matrix.getMessages(this.state.user, roomId, {limit: 500000, dir: "f", from: this.state.user.next_batch})
+          .then((newEvents) => {
+            return Matrix.parseEvents(localRoom, newEvents);
+          })
+      ]);
+    })
+      .then((resp) => {
+        console.log("backfill: ", resp);
+        let localRooms = {};
+        resp.forEach((arr) => {
+          localRooms[arr[0]] = arr[1];
+        });
+
+        let localState = this.state.localState;
+        Object.assign(localState, {
+          rooms: localRooms
+        });
+        this.setState({
+          localState: localState
+        })
+        localStorage.setItem("localState", JSON.stringify(localState));
+      });
+  },
+
   initialSync: function() {
     Matrix.initialSyncRequest(this.state.user)
       .then((returnArray) => {
@@ -195,9 +226,12 @@ let App = create({
         rooms: syncedRooms[0],
         invites: syncedRooms[1]
       });
+      let user = this.state.user;
+      user.next_batch = syncedRooms[2];
 
       this.setState({
-        localState: localState
+        localState: localState,
+        user: user
       });
 
       // Auto kicker, use at own risk!
@@ -215,6 +249,7 @@ let App = create({
       //});
 
       localStorage.setItem("localState", JSON.stringify(localState));
+      localStorage.setItem("user", JSON.stringify(user));
       setTimeout(this.sync(), 200);
     });
   },
@@ -268,7 +303,6 @@ let App = create({
             {usercount} member{usercount > 1 && "s"}
           </div>
           <RoomView {...this.state}
-            backlog={this.getBacklog}
             userInfo={this.userInfo}
             setGlobalState={this.setGlobalState}
           />

@@ -80,7 +80,7 @@ let List = create({
           key={roomId}
           id={roomId}
           resetFilter={this.resetFilter}
-          notif={rooms[roomId].notif}
+          notif={{unread: 0, highlight: 0}}
         />
       );
     });

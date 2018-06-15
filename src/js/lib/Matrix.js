@@ -84,14 +84,22 @@ let Matrix = {
   },
 
   getBacklog: function(user, roomId) {
+    let query = {
+      limit: 80,
+      dir: "b"
+    };
+    return this.getMessages(user, roomId, query)
+      .then((newEvents) => {
+        return this.parseEvents({}, newEvents);
+      });
+  },
+
+  getMessages: function(user, roomId, query) {
     return new Promise((resolve, reject) => {
+      query.access_token = user.access_token;
       let url = urllib.format(Object.assign({}, user.hs, {
         pathname: `/_matrix/client/r0/rooms/${roomId}/messages`,
-        query: {
-          limit: 80,
-          dir: "b",
-          access_token: user.access_token
-        }
+        query: query
       }));
 
       return rfetch(url, options)
@@ -107,11 +115,7 @@ let Matrix = {
             newEvents[event.event_id] = event;
           });
 
-          let localRoom = this.parseEvents({}, newEvents);
-
-          localRoom.notif = {unread: 0, highlight: 0};
-
-          resolve(localRoom);
+          resolve(newEvents);
         });
     });
   },
@@ -303,6 +307,7 @@ let Matrix = {
           }
           
           let remoteRooms = responseJson.rooms.join;
+          let next_batch = responseJson.next_batch;
 
           return Promise.map(Object.keys(remoteRooms), (roomId) => {
             let localRoom = localState.rooms[roomId];
@@ -335,6 +340,7 @@ let Matrix = {
               });
   
               localRoom = this.parseEvents(localRoom, newEvents);
+              localRoom.next_batch = remoteRoom.next_batch;
   
               let unread = defaultValue(
                 remoteRoom.unread_notifications.notification_count,
@@ -357,7 +363,7 @@ let Matrix = {
 
             let remoteInvites = responseJson.rooms.invite;
             let localInvites = this.parseInvites(user, localState.invites, remoteInvites);
-            resolve([localState.rooms, localInvites]);
+            resolve([localState.rooms, localInvites, next_batch]);
           });
         });
     });
