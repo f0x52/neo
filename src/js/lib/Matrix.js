@@ -340,7 +340,6 @@ let Matrix = {
               });
   
               localRoom = this.parseEvents(localRoom, newEvents);
-              localRoom.next_batch = remoteRoom.next_batch;
   
               let unread = defaultValue(
                 remoteRoom.unread_notifications.notification_count,
@@ -352,6 +351,8 @@ let Matrix = {
                 0
               );
               localRoom.notif = {unread: unread, highlight: highlight};
+              localRoom.prev_batch = remoteRoom.timeline.prev_batch;
+              localRoom.limited = remoteRoom.timeline.limited;
               return [roomId, localRoom];
             });
           }).then((localRoomsArray) => {

@@ -54,8 +54,9 @@ let App = create({
 
   componentDidMount: function() {
     if (this.state.user.access_token != undefined) {
-      this.backfill()
-      .then(() => this.sync());
+      //this.backfill()
+      //  .then(() => this.sync());
+      this.sync();
     }
   },
 
@@ -166,34 +167,15 @@ let App = create({
     });
   },
 
-  backfill: function() {
-    console.log("doing a backfill");
-    return Promise.map(Object.keys(this.state.localState.rooms), (roomId) => {
+  backfill: function(roomId) {
+    console.log("doing a backfill for", roomId);
+    return new Promise((resolve) => {
       let localRoom = this.state.localState.rooms[roomId];
-      return Promise.all([
-        roomId,
-        Matrix.getMessages(this.state.user, roomId, {limit: 500000, dir: "f", from: this.state.user.next_batch})
-          .then((newEvents) => {
-            return Matrix.parseEvents(localRoom, newEvents);
-          })
-      ]);
-    })
-      .then((resp) => {
-        console.log("backfill: ", resp);
-        let localRooms = {};
-        resp.forEach((arr) => {
-          localRooms[arr[0]] = arr[1];
+      return Matrix.getMessages(this.state.user, roomId, {limit: 500000, dir: "f", from: this.state.user.next_batch})
+        .then((newEvents) => {
+          resolve(Matrix.parseEvents(localRoom, newEvents));
         });
-
-        let localState = this.state.localState;
-        Object.assign(localState, {
-          rooms: localRooms
-        });
-        this.setState({
-          localState: localState
-        })
-        localStorage.setItem("localState", JSON.stringify(localState));
-      });
+    });
   },
 
   initialSync: function() {
@@ -232,6 +214,20 @@ let App = create({
       this.setState({
         localState: localState,
         user: user
+      });
+
+      let localRooms = this.state.localState.rooms;
+      Object.keys(localRooms).forEach((roomId) => {
+        let localRoom = localRooms[roomId];
+        if (localRoom.limited) {
+          this.backfill(roomId)
+            .then((backfilledRoom) => {
+              let localState = this.state.localState;
+              localState.rooms[roomId] = backfilledRoom;
+              this.setState({localState: localState});
+              localStorage.setItem("localState", JSON.stringify(localState));
+            });
+        }
       });
 
       // Auto kicker, use at own risk!
