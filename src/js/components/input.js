@@ -213,9 +213,11 @@ let Send = create({
     let roomUnsent = defaultValue(room.unsentEvents, {});
     roomUnsent[msgId] = {
       content: body,
+      sender: this.props.user.user_id,
       origin_server_ts: Date.now(),
       real: false,
-      sent: false
+      sent: false,
+      count: this.state.count
     };
 
     room.unsentEvents = roomUnsent;

@@ -65,6 +65,7 @@ let MessageView = create({
     }
 
     let eventIndex = room.eventIndex;
+
     let messages = eventIndex.map((eventId) => {
       let event = events[eventId];
       //let next_event = parseInt(event_num)+1;
@@ -96,8 +97,6 @@ let MessageView = create({
         //  next_event++;
         //}
       
-        let isReal = defaultValue(event.real, true);
-  
         return (
           <Message
             key={event.event_id}
@@ -108,8 +107,7 @@ let MessageView = create({
             replyTo={replyEvent}
             eventId={event.event_id}
             users={room.users}
-            real={isReal}
-            sent={event.sent}
+            real={true}
             {...this.props}
           />
         );
@@ -129,10 +127,42 @@ let MessageView = create({
       }
     });
 
+    let unsentEvents = defaultValue(room.unsentEvents, {});
+    let localEcho = Object.keys(unsentEvents).map((eventId) => {
+      let event = unsentEvents[eventId];
+      let isReal = defaultValue(event.real, true);
+
+      let replyEvent;
+      if (event.content["m.relates_to"] != null &&
+        event.content["m.relates_to"]["m.in_reply_to"] != null) {
+        let replyId = event.content["m.relates_to"]["m.in_reply_to"].event_id;
+        replyEvent = events[replyId];
+      }
+  
+      return (
+        <Message
+          key={defaultValue(event.event_id, event.count)}
+          id={event.sender}
+          event={event}
+          source={event.sender == this.props.user.user_id ? "out" : "in"}
+          group="yes"
+          replyTo={replyEvent}
+          eventId={event.event_id}
+          users={room.users}
+          real={isReal}
+          sent={event.sent}
+          {...this.props}
+        />
+      );
+
+    });
+
+
     return (
       <div className="messagesScrollViewWrapper">
         <div className={className} id="messagesScrollView">
           {messages}
+          {localEcho}
         </div>
         <span className="bottom onclick" onClick={this.scrollToBottom}>{icons.arrow.down}</span>
       </div>
