@@ -369,7 +369,7 @@ let Message = create({
             </div>
           </div>
           <div className="replyAndTime">
-            <span id="reply" onClick={() => {this.props.setParentState("replyId", this.props.eventId);}}>
+            <span id="reply" onClick={() => {this.props.setGlobalState("replyId", this.props.eventId);}}>
               Reply
             </span>
             <span className="timestamp">{time_string}</span>
