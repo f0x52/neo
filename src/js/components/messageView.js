@@ -267,10 +267,20 @@ let Message = create({
         return false;
       });
     }
+
+    let localEchoClass = [];
+    if (!this.props.real) { // localecho message
+      localEchoClass.push("localecho");
+      if (this.props.sent) {
+        localEchoClass.push("unsent");
+      }
+    }
+
     if (!this.props.user.settings.bool.bubbles) {
       classArray.push("nobubble");
     }
     classArray = classArray.join(" ");
+    localEchoClass = localEchoClass.join(" ");
 
     let time = new Date(this.props.event.origin_server_ts);
     let time_string = time.getHours().toString().padStart(2, "0") +
@@ -389,7 +399,7 @@ let Message = create({
     let senderInfo = this.props.userInfo(this.props.event.sender);
 
     return (
-      <div className={"line " + this.props.source} ref={this.setRef} onContextMenu={(e) => {e.preventDefault(); console.log("event:", this.props.event);}} >
+      <div className={"line " + this.props.source + " " + localEchoClass} ref={this.setRef} onContextMenu={(e) => {e.preventDefault(); console.log("event:", this.props.event);}} >
         <img id="avatar" src={senderInfo.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div className="messageContainer">
