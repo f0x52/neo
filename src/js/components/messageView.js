@@ -4,7 +4,7 @@ const React = require("react");
 const create = require("create-react-class");
 //const Promise = require('bluebird');
 const urllib = require('url');
-//const defaultValue = require('default-value');
+const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
 const rfetch = require('fetch-retry');
 const riot = require('../lib/riot-utils.js');
@@ -95,6 +95,8 @@ let MessageView = create({
         //  event.content.body += "\n" + this.props.messages[next_event].content.body;
         //  next_event++;
         //}
+      
+        let isReal = defaultValue(event.real, true);
   
         return (
           <Message
@@ -106,6 +108,8 @@ let MessageView = create({
             replyTo={replyEvent}
             eventId={event.event_id}
             users={room.users}
+            real={isReal}
+            sent={event.sent}
             {...this.props}
           />
         );

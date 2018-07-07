@@ -165,11 +165,6 @@ let Send = create({
     let rooms = this.props.localState.rooms;
     let roomId = this.props.roomId;
     let room = rooms[roomId];
-    let roomUnsent = defaultValue(room.unsentEvents, {});
-    roomUnsent[msgId] = {
-      content: {body: msg},
-      origin_server_ts: Date.now()
-    };
 
     let formattedBody = msg;
     let stripReply = /<mx-reply>.+<\/mx-reply>/;
@@ -186,12 +181,6 @@ let Send = create({
     };
 
     if (this.props.replyId) {
-      roomUnsent[msgId].content["m.relates_to"] = {
-        "m.in_reply_to": {
-          "event_id": this.props.replyId
-        }
-      };
-
       let replyEvent = this.props.localState.rooms[this.props.roomId].events[this.props.replyId];
       let replyToBody = replyEvent.content.body;
 
@@ -219,10 +208,19 @@ let Send = create({
       count: this.state.count+1
     });
 
+
     //FIXME: LOCALECHO
-    //room.unsentEvents = roomUnsent;
-    //rooms[roomId] = room;
-    //this.props.setParentState("rooms", rooms);
+    let roomUnsent = defaultValue(room.unsentEvents, {});
+    roomUnsent[msgId] = {
+      content: body,
+      origin_server_ts: Date.now(),
+      real: false,
+      sent: false
+    };
+
+    room.unsentEvents = roomUnsent;
+    rooms[roomId] = room;
+    this.props.setGlobalState("rooms", rooms);
 
     this.props.setGlobalState("replyId", undefined);
     rfetch(url, {
@@ -234,14 +232,14 @@ let Send = create({
     }, options).then(res => res.json())
       .catch(error => console.error('Error:', error))
       .then(response => {
-        //let roomUnsent = this.props.localState.rooms[roomId].unsentEvents;
+        let roomUnsent = this.props.localState.rooms[roomId].unsentEvents;
         console.log('Success:', response);
-        //roomUnsent[msgId].sent = true;
-        //roomUnsent[msgId].id = response.event_id;
+        roomUnsent[msgId].sent = true;
+        roomUnsent[msgId].id = response.event_id;
 
-        //room.unsentEvents = roomUnsent;
-        //rooms[roomId] = room;
-        //this.props.setParentState("rooms", rooms);
+        room.unsentEvents = roomUnsent;
+        rooms[roomId] = room;
+        this.props.setGlobalState("rooms", rooms);
       });
   },
 
