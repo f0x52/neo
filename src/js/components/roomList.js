@@ -419,6 +419,10 @@ let RoomEntry = create({
   },
 
   render: function() {
+    if (!this.props.filteredRooms[this.props.roomId]) {
+      return null;
+    }
+
     let time = new Date(this.props.lastEvent.origin_server_ts);
     let now = new Date();
     let time_string;
