@@ -25,6 +25,7 @@ let File = create ({
 
   setCaptionRef: function(e) {
     if (e != null) {
+      e.focus();
       e.addEventListener('keydown', (e) => {
         if (e.keyCode == 13) {
           setTimeout(this.send, 1);
@@ -158,7 +159,7 @@ let File = create ({
       dialog: false
     });
 
-    let roomId = this.props.room;
+    let roomId = this.props.roomId;
     let caption = this.state.captionRef.value;
     let fileBody = "";
 

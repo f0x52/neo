@@ -96,7 +96,7 @@ let MessageView = create({
         //  event.content.body += "\n" + this.props.messages[next_event].content.body;
         //  next_event++;
         //}
-      
+        
         return (
           <Message
             key={event.event_id}
@@ -112,7 +112,6 @@ let MessageView = create({
           />
         );
       } else {
-        let text = Event.asText(event);
         let className = "line";
 
         if (event.type == "m.room.member") {
@@ -121,7 +120,7 @@ let MessageView = create({
 
         return (
           <div className={className} key={event.event_id} onContextMenu={(e) => {e.preventDefault(); console.log("event:", event);}}>
-            {text}
+            {eventAsText}
           </div>
         );
       }
@@ -154,9 +153,7 @@ let MessageView = create({
           {...this.props}
         />
       );
-
     });
-
 
     return (
       <div className="messagesScrollViewWrapper">
@@ -246,21 +243,22 @@ let Message = create({
   },
 
   render: function() {
-    if (this.props.event.redacted_because != undefined) {
+    let event = this.props.event;
+    if (event.redacted_because != undefined) {
       return null;
     }
     let classArray = ["message", this.props.id];
-    if (this.props.event.sent) {
+    if (event.sent) {
       classArray.push("sent");
     }
     let highlights = this.props.user.settings.input.highlights.split(" ");
     highlights.push(this.props.user.username);
-    if (this.props.event.content.body != undefined) {
+    if (event.content.body != undefined) {
       highlights.some((highlight) => {
         if (highlight == "") {
           return false;
         }
-        if (this.props.event.content.body.includes(highlight)) {
+        if (event.content.body.includes(highlight)) {
           classArray.push("mention");
           return true;
         }
@@ -282,59 +280,59 @@ let Message = create({
     classArray = classArray.join(" ");
     localEchoClass = localEchoClass.join(" ");
 
-    let time = new Date(this.props.event.origin_server_ts);
+    let time = new Date(event.origin_server_ts);
     let time_string = time.getHours().toString().padStart(2, "0") +
       ":" + time.getMinutes().toString().padStart(2, "0");
 
     let media = "";
     let media_width = "";
   
-    let eventBody = this.props.event.content.body;
+    let eventBody = event.content.body;
 
-    if (this.props.event.content.msgtype == "m.image" || this.props.event.type == "m.sticker") {
-      if (this.props.event.type == "m.sticker") {
+    if (event.content.msgtype == "m.image" || event.type == "m.sticker") {
+      if (event.type == "m.sticker") {
         eventBody = "";
       }
 
       classArray += " media";
-      if (this.props.event.content.info == undefined) {
-        let url = Matrix.m_download(this.props.user.hs, this.props.event.content.url);
+      if (event.content.info == undefined) {
+        let url = Matrix.m_download(this.props.user.hs, event.content.url);
         media = displayMedia("image", this.state.ref, url, url);
-      } else if (this.props.event.content.info.thumbnail_info == undefined) {
-        let url = Matrix.m_download(this.props.user.hs, this.props.event.content.url);
-        if (this.props.event.content.info.h != undefined && this.props.event.content.info.w != undefined) {
-          media = displayMedia("image", this.state.ref, url, url, this.props.event.content.info.h, this.props.event.content.info.w);
+      } else if (event.content.info.thumbnail_info == undefined) {
+        let url = Matrix.m_download(this.props.user.hs, event.content.url);
+        if (event.content.info.h != undefined && event.content.info.w != undefined) {
+          media = displayMedia("image", this.state.ref, url, url, event.content.info.h, event.content.info.w);
         } else {
           media = displayMedia("image", this.state.ref, url, url);
         }
       } else {
-        media_width = this.props.event.content.info.thumbnail_info.w;
-        let media_url = this.props.event.content.info.thumbnail_url;
-        if (this.props.event.content.info.mimetype == "image/gif") {
-          media_url = this.props.event.content.url;
+        media_width = event.content.info.thumbnail_info.w;
+        let media_url = event.content.info.thumbnail_url;
+        if (event.content.info.mimetype == "image/gif") {
+          media_url = event.content.url;
         }
 
         media = displayMedia(
           "image",
           this.state.ref,
-          Matrix.m_download(this.props.user.hs, this.props.event.content.url),
+          Matrix.m_download(this.props.user.hs, event.content.url),
           Matrix.m_download(this.props.user.hs, media_url),
-          this.props.event.content.info.thumbnail_info.h,
-          this.props.event.content.info.thumbnail_info.w
+          event.content.info.thumbnail_info.h,
+          event.content.info.thumbnail_info.w
         );
       }
-    } else if (this.props.event.content.msgtype == "m.video") {
+    } else if (event.content.msgtype == "m.video") {
       let thumb = "";
-      if (this.props.event.content.info != undefined &&
-        this.props.event.content.info.thumbnail_url != undefined) {
-        thumb = Matrix.m_download(this.props.user.hs, this.props.event.content.info.thumbnail_url);
+      if (event.content.info != undefined &&
+        event.content.info.thumbnail_url != undefined) {
+        thumb = Matrix.m_download(this.props.user.hs, event.content.info.thumbnail_url);
       }
       let h;
       let w;
 
-      if (this.props.event.content.info.thumbnail_info != undefined) {
-        h = this.props.event.content.info.thumbnail_info.h;
-        w = this.props.event.content.info.thumbnail_info.w;
+      if (event.content.info.thumbnail_info != undefined) {
+        h = event.content.info.thumbnail_info.h;
+        w = event.content.info.thumbnail_info.w;
       } else {
         h = 600;
         if (this.state.ref == undefined) {
@@ -347,31 +345,31 @@ let Message = create({
       media = displayMedia(
         "video",
         this.state.ref,
-        Matrix.m_download(this.props.user.hs, this.props.event.content.url),
+        Matrix.m_download(this.props.user.hs, event.content.url),
         thumb,
         h,
         w
       );
       
-    } else if (this.props.event.content.msgtype == "m.file") {
+    } else if (event.content.msgtype == "m.file") {
       media = <a
         className="file"
         target="_blank" 
-        href={Matrix.m_download(this.props.user.hs, this.props.event.content.url)}
+        href={Matrix.m_download(this.props.user.hs, event.content.url)}
       >
         <span>file download</span>
       </a>;
     } else {
-      if (!this.props.event.content.msgtype == "m.text") {
-        console.log(this.props.event);
+      if (!event.content.msgtype == "m.text") {
+        console.log(event);
       }
     }
 
-    if (this.props.event.content.body == undefined) {
+    if (event.content.body == undefined) {
       return null;
     }
 
-    let formattedEventBody = this.props.event.content.formatted_body;
+    let formattedEventBody = event.content.formatted_body;
 
     let replyContent;
     if (this.props.replyTo != undefined) {
@@ -387,19 +385,23 @@ let Message = create({
       );
     }
 
-    if (this.props.event.content.formatted_body != undefined) {
+    if (event.content.formatted_body != undefined) {
       let saneHtml = riot.sanitize(formattedEventBody);
       eventBody = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
+    }
+
+    if (event.content.msgtype == "m.emote") {
+      eventBody = <React.Fragment>{icons.action} {event.sender} {eventBody}</React.Fragment>;
     }
 
     let link = <Linkify component={LinkInfo} properties={{user: this.props.user, sRef: this.state.ref}}>
       {eventBody}
     </Linkify>;
 
-    let senderInfo = this.props.userInfo(this.props.event.sender);
+    let senderInfo = this.props.userInfo(event.sender);
 
     return (
-      <div className={"line " + this.props.source + " " + localEchoClass} ref={this.setRef} onContextMenu={(e) => {e.preventDefault(); console.log("event:", this.props.event);}} >
+      <div className={"line " + this.props.source + " " + localEchoClass} ref={this.setRef} onContextMenu={(e) => {e.preventDefault(); console.log("event:", event);}} >
         <img id="avatar" src={senderInfo.img} onError={(e)=>{e.target.src = blank;}}/>
         <div className={classArray} id={this.props.id} style={{width: media_width}}>
           <div className="messageContainer">
