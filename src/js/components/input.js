@@ -9,8 +9,9 @@ const marked = require('marked');
 const sanitize = require('sanitize-html');
 //const debounce = require('debounce');
 
-const Event = require('../lib/Events.js');
 const icons = require('./icons.js');
+const Event = require('../lib/Events.js');
+const Riot = require('../lib/riot-utils.js');
 
 const options = {retries: 5, retryDelay: 200};
 
@@ -143,6 +144,124 @@ let Send = create({
   },
 
   send: function() {
+    if (this.state.ref == null) {
+      return;
+    }
+    let textarea = this.state.ref;
+    if(textarea.value == "") {
+      return;
+    }
+
+    let msg = textarea.value.replace(/^\s+|\s+$/g, '');
+    textarea.value = "";
+    let unixtime = Date.now();
+
+    let url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: `/_matrix/client/r0/rooms/${this.props.roomId}/send/m.room.message/${unixtime}`,
+      query: {
+        access_token: this.props.user.access_token
+      }
+    }));
+
+    let msgId = this.state.count;
+    let rooms = this.props.localState.rooms;
+    let roomId = this.props.roomId;
+    let room = rooms[roomId];
+    let msgType = "m.text";
+
+
+    let isEmote;
+    if (msg.startsWith("/me ")) {
+      isEmote = true;
+      msg = msg.substr(4);
+    }
+
+    let formattedBody = msg;
+    let stripReply = /<mx-reply>.+<\/mx-reply>/;
+    formattedBody = marked(msg).trim().replace(/\n/g, "<br/>");
+    formattedBody.replace(stripReply, "");
+
+    let eventBody = sanitize(msg, {allowedTags: []});
+
+    if (isEmote) {
+      msgType = "m.emote";
+      formattedBody = Riot.sanitize(formattedBody);
+      //formattedBody = sanitize(formattedBody, {transformTags: {'p': 'span'}});
+    }
+
+    let body = {
+      "msgtype": msgType,
+      "body": eventBody,
+      "formatted_body": formattedBody,
+      "format": "org.matrix.custom.html"
+    };
+
+    if (this.props.replyId) {
+      let replyEvent = this.props.localState.rooms[this.props.roomId].events[this.props.replyId];
+      let replyToBody = replyEvent.content.body;
+
+      if (replyEvent.content.formatted_body != undefined) {
+        replyToBody = replyEvent.content.formatted_body.replace(stripReply, "");
+      }
+
+      let fallback_msg = `${replyEvent.sender}: >${replyEvent.content.body.trim()}\n\n${eventBody}`;
+      let fallback_html = `<mx-reply><blockquote><a href=\"https://matrix.to/#/${roomId}/${this.props.replyId}\">In reply to</a> <a href=\"https://matrix.to/#/${replyEvent.sender}\">${replyEvent.sender}</a><br>${replyToBody}</blockquote></mx-reply>${formattedBody}`;
+
+      body = {
+        "msgtype": "m.text",
+        "body": fallback_msg,
+        "format": "org.matrix.custom.html",
+        "formatted_body": fallback_html,
+        "m.relates_to": {
+          "m.in_reply_to": {
+            event_id: this.props.replyId
+          }
+        }
+      };
+    }
+
+    this.setState({
+      count: this.state.count+1
+    });
+
+
+    //FIXME: LOCALECHO
+    let roomUnsent = defaultValue(room.unsentEvents, {});
+    roomUnsent[msgId] = {
+      content: body,
+      sender: this.props.user.user_id,
+      origin_server_ts: Date.now(),
+      real: false,
+      sent: false,
+      count: this.state.count
+    };
+
+    room.unsentEvents = roomUnsent;
+    rooms[roomId] = room;
+    this.props.setGlobalState("rooms", rooms);
+
+    this.props.setGlobalState("replyId", undefined);
+    rfetch(url, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+      headers: new Headers({
+        'Content-Type': 'application/json'
+      })
+    }, options).then(res => res.json())
+      .catch(error => console.error('Error:', error))
+      .then(response => {
+        let roomUnsent = this.props.localState.rooms[roomId].unsentEvents;
+        console.log('Success:', response);
+        roomUnsent[msgId].sent = true;
+        roomUnsent[msgId].id = response.event_id;
+
+        room.unsentEvents = roomUnsent;
+        rooms[roomId] = room;
+        this.props.setGlobalState("rooms", rooms);
+      });
+  },
+
+  send2: function() {
     if (this.state.ref == null) {
       return;
     }

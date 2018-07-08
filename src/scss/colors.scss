@@ -156,6 +156,12 @@ a:hover {
     background-color: $bg;
     border: 1px solid lighten($bg, 10);
 
+    .userlist {
+      .invite {
+        background-color: lighten($bg, 7);
+      }
+    }
+
     .messages {
       .message {
         background-color: lighten($bg, 4);

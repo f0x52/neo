@@ -222,6 +222,7 @@ let Userlist = create({
 
     return (
       <div className="userlist" onScroll={this.userlistScroll}>
+        <div className="invite">Invite</div>
         {userlist}
       </div>
     );
@@ -385,12 +386,14 @@ let Message = create({
       );
     }
 
+    let saneHtml;
     if (event.content.formatted_body != undefined) {
-      let saneHtml = riot.sanitize(formattedEventBody);
+      saneHtml = riot.sanitize(formattedEventBody);
       eventBody = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
     }
 
     if (event.content.msgtype == "m.emote") {
+      eventBody = <span dangerouslySetInnerHTML={{ __html: saneHtml }} />;
       eventBody = <React.Fragment>{icons.action} {event.sender} {eventBody}</React.Fragment>;
     }
 

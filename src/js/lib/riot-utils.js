@@ -138,7 +138,7 @@ module.exports = {
     allowedTags: [
       'font', // custom to matrix for IRC-style font coloring
       'del', // for markdown
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'p', 'a', 'ul', 'ol', 'sup', 'sub',
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'blockquote', 'a', 'ul', 'ol', 'sup', 'sub',
       'nl', 'li', 'b', 'i', 'u', 'strong', 'em', 'strike', 'code', 'hr', 'br', 'div',
       'table', 'thead', 'caption', 'tbody', 'tr', 'th', 'td', 'pre', 'span', 'img',
       'mx-reply'
