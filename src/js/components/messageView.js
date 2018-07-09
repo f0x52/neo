@@ -393,7 +393,9 @@ let Message = create({
     }
 
     if (event.content.msgtype == "m.emote") {
-      eventBody = <span dangerouslySetInnerHTML={{ __html: saneHtml }} />;
+      if (saneHtml != undefined) {
+        eventBody = <span dangerouslySetInnerHTML={{ __html: saneHtml }} />;
+      }
       eventBody = <React.Fragment>{icons.action} {event.sender} {eventBody}</React.Fragment>;
     }
 
