@@ -179,7 +179,7 @@ let Matrix = {
             } else if (stateKey.type === "m.room.name") {
               name = stateKey.content.name;
             } else if (stateKey.type === "m.room.avatar") {
-              avatar = stateKey.content.avatar;
+              avatar = this.m_download(user.hs, stateKey.content.url);
             } else if (stateKey.type === "m.room.canonical_alias") {
               canonicalAlias = stateKey.content.alias;
             }
