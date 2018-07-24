@@ -259,13 +259,15 @@ let App = create({
     let view;
     if (this.state.roomId != 0) {
       let usercount = Object.keys(this.state.localState.rooms[this.state.roomId].users).length;
+      console.log(this.state.localState.rooms[this.state.roomId]);
       view = (
         <React.Fragment>
           <div className="info">
             <b>
               {this.state.localState.rooms[this.state.roomId].info.name}
             </b><br/>
-            {usercount} member{usercount > 1 && "s"}
+            {usercount} member{usercount > 1 && "s"}<br/>
+            {this.state.localState.rooms[this.state.roomId].info.topic}
           </div>
           <RoomView {...this.state}
             backlog={this.getBacklog}

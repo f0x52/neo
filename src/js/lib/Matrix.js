@@ -57,7 +57,8 @@ let Matrix = {
                     localRooms[roomId].unsentEvents = {};
                     localRooms[roomId].info = {
                       name: roomDetail[1][0],
-                      avatar: roomDetail[1][1]
+                      avatar: roomDetail[1][1],
+                      topic: roomDetail[1][2]
                     };
 
                     Object.keys(localUsers).forEach((userId) => {
@@ -157,6 +158,55 @@ let Matrix = {
     });
   },
 
+  parseRoomState: function(user, roomId) {
+    return new Promise((resolve, reject) => {
+      let url = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/state`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+      fetch(url)
+        .then(response => response.json()) // TODO: catch + reject
+        .then(responseJson => {
+          let name, avatar, canonicalAlias, topic;
+          responseJson.forEach((stateKey) => {
+            if (stateKey.type === "m.room.member") {
+              
+            } else if (stateKey.type === "m.room.topic") {
+              topic = stateKey.content.topic;
+            } else if (stateKey.type === "m.room.name") {
+              name = stateKey.content.name;
+            } else if (stateKey.type === "m.room.avatar") {
+              avatar = stateKey.content.avatar;
+            } else if (stateKey.type === "m.room.canonical_alias") {
+              canonicalAlias = stateKey.content.alias;
+            }
+          });
+          resolve([name, avatar, canonicalAlias, topic]);
+        });
+    });
+  },
+
+  getRoomName: function(user, roomId) {
+    return new Promise((resolve, reject) => {
+      let nameUrl = urllib.format(Object.assign({}, user.hs, {
+        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.name`,
+        query: {
+          access_token: user.access_token
+        }
+      }));
+
+
+      fetch(nameUrl)
+        .then(response => response.json()) //catch + reject
+        .then(responseJson => {
+          resolve(responseJson.name);
+        });
+    });
+  },
+
   getRoomDetails: function(user, roomId, localUsers) {
     return new Promise((resolve, reject) => {
       let partnerName;
@@ -176,11 +226,13 @@ let Matrix = {
         partnerAvatar = otherUser.img;
       }
 
-      Promise.all([
-        this.getRoomName(user, roomId),
-        this.getRoomAvatar(user, roomId),
-        this.getRoomAliases(user, roomId)
-      ])
+      //Promise.all([
+      //  this.getRoomName(user, roomId),
+      //  this.getRoomAvatar(user, roomId),
+      //  this.getRoomAliases(user, roomId)
+      //])
+      
+      this.parseRoomState(user, roomId)
         .then((roomInfo) => {
           // Order of defaultValues:
           // room.name
@@ -212,26 +264,8 @@ let Matrix = {
             ),
             blank
           );
-          
-          resolve([displayName, avatar]);
-        });
-    });
-  },
-
-  getRoomName: function(user, roomId) {
-    return new Promise((resolve, reject) => {
-      let nameUrl = urllib.format(Object.assign({}, user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.name`,
-        query: {
-          access_token: user.access_token
-        }
-      }));
-
-
-      fetch(nameUrl)
-        .then(response => response.json()) //catch + reject
-        .then(responseJson => {
-          resolve(responseJson.name);
+          let topic = roomInfo[3];
+          resolve([displayName, avatar, topic]);
         });
     });
   },
@@ -319,7 +353,8 @@ let Matrix = {
               
                         localRoom.info = {
                           name: roomDetails[0],
-                          avatar: roomDetails[1]
+                          avatar: roomDetails[1],
+                          topic: roomDetails[2]
                         };
                         resolve(localRoom);
                       });

@@ -297,7 +297,9 @@ mx-reply {
 }
 
 .info {
-  height: 5vh;
+  min-height: 4rem;
+  z-index: 2;
+  background: $bg;
   padding-left: 5px;
 
   b {
