@@ -622,6 +622,22 @@ mx-reply {
             h3, h4, h5, h6 {
               font-size: 100%;
             }
+
+            .youtubePreview {
+              margin-top: 4px;
+              padding-left: 4px;
+
+              a, b, span {
+                display: inline-block;
+                text-decoration: none;
+                margin: 0;
+                max-width: 32rem;
+              }
+
+              img {
+                max-height: 16rem;
+              }
+            }
           }
 
           .link {

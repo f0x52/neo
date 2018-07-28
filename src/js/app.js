@@ -259,7 +259,6 @@ let App = create({
     let view;
     if (this.state.roomId != 0) {
       let usercount = Object.keys(this.state.localState.rooms[this.state.roomId].users).length;
-      console.log(this.state.localState.rooms[this.state.roomId]);
       view = (
         <React.Fragment>
           <div className="info">

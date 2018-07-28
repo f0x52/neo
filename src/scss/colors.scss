@@ -173,6 +173,10 @@ a:hover {
         .timestamp {
           color: darken($fg, 45);
         }
+
+        .youtubePreview {
+          border-left: 3px solid $green;
+        }
       }
 
       .message.mention {

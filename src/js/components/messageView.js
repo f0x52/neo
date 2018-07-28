@@ -7,6 +7,7 @@ const urllib = require('url');
 const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
 const rfetch = require('fetch-retry');
+const Parser = require('html-react-parser');
 const riot = require('../lib/riot-utils.js');
 
 const Scroll = require("react-scroll");
@@ -370,8 +371,6 @@ let Message = create({
       return null;
     }
 
-    let formattedEventBody = event.content.formatted_body;
-
     let replyContent;
     if (this.props.replyTo != undefined) {
       if (this.props.users[this.props.replyTo.sender] == undefined) {
@@ -386,22 +385,27 @@ let Message = create({
       );
     }
 
-    let saneHtml;
-    if (event.content.formatted_body != undefined) {
-      saneHtml = riot.sanitize(formattedEventBody);
-      eventBody = <div dangerouslySetInnerHTML={{ __html: saneHtml }} />;
+    let formattedEventBody = event.content.formatted_body;
+
+    if (formattedEventBody == undefined) {
+      formattedEventBody = event.content.body;
     }
+
+    formattedEventBody = riot.sanitize(formattedEventBody);
 
     if (event.content.msgtype == "m.emote") {
-      if (saneHtml != undefined) {
-        eventBody = <span dangerouslySetInnerHTML={{ __html: saneHtml }} />;
-      }
+      eventBody = <span dangerouslySetInnerHTML={{ __html: formattedEventBody }} />;
       eventBody = <React.Fragment>{icons.action} {event.sender} {eventBody}</React.Fragment>;
+    } else {
+      let parserOptions = {
+        replace: (domNode) => {
+          if (domNode.name == "a") {
+            return <UrlParse domNode={domNode} {...this.props}/>;
+          }
+        }
+      };
+      eventBody = Parser(formattedEventBody, parserOptions);
     }
-
-    let link = <Linkify component={LinkInfo} properties={{user: this.props.user, sRef: this.state.ref}}>
-      {eventBody}
-    </Linkify>;
 
     let senderInfo = this.props.userInfo(event.sender);
 
@@ -415,7 +419,7 @@ let Message = create({
             {media}
             <div className="flex">
               <div className="markdown">
-                {link}
+                {eventBody}
               </div>
             </div>
           </div>
@@ -428,6 +432,75 @@ let Message = create({
         </div>
       </div>
     );
+  }
+});
+
+let UrlParse = create({
+  displayName: "UrlParse",
+
+  getInitialState: function() {
+    return ({});
+  },
+
+  componentDidMount: function() {
+    let m_url = urllib.format(Object.assign({}, this.props.user.hs, {
+      pathname: "/_matrix/media/r0/preview_url/",
+      query: {
+        url: this.props.domNode.attribs.href,
+        access_token: this.props.user.access_token
+      }
+    }));
+    
+    rfetch(m_url)
+      .then(response => response.json())
+      .then(responseJson => {
+        if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) {
+          this.setState({
+            img: Matrix.m_download(this.props.user.hs, responseJson["og:image"]),
+            h: responseJson["og:image:height"],
+            w: responseJson["og:image:width"]
+          });
+        } else if (responseJson["og:site_name"] == "YouTube") {
+          this.setState({
+            youtube: {
+              img: Matrix.m_download(this.props.user.hs, responseJson["og:image"]),
+              title: responseJson["og:title"],
+              desc: responseJson["og:description"],
+              h: responseJson["og:image:height"],
+              w: responseJson["og:image:width"]
+            }
+          });
+        }
+      });
+  },
+
+  render: function() {
+    if (this.state.img) {
+      //<img className="link" src={this.state.img} style={{minHeight: this.state.h, minWidth: this.state.w}}/>
+      return (
+        <span>
+          {this.props.children}<br/>
+          {displayMedia("inline-image", this.props.ref, this.state.img, this.state.img, this.state.h, this.state.w, "link")}
+        </span>
+      );
+    } else if (this.state.youtube) { //FIXME [0].data
+      return (
+        <React.Fragment>
+          <a href={this.props.domNode.attribs.href} target="_blank">
+            {Parser(this.props.domNode.children)}
+          </a>
+          <div className="youtubePreview">
+            <b>{this.state.youtube.title}</b><br/>
+            <span>{this.state.youtube.desc}</span><br/>
+            <a href={this.props.domNode.attribs.href} target="_blank">
+              <img src={this.state.youtube.img} />
+            </a><br/>
+          </div>
+        </React.Fragment>
+      );
+    }
+
+    return <a href={this.props.domNode.attribs.href}>{Parser(this.props.domNode.children)}</a>;
   }
 });
 
@@ -453,15 +526,28 @@ let LinkInfo = create({
         access_token: this.props.user.access_token
       }
     }));
-
+    
+    console.log("fetching", m_url);
     rfetch(m_url)
       .then(response => response.json())
       .then(responseJson => {
+        console.log(responseJson);
         if (responseJson["og:image"] != undefined && responseJson["og:title"] == undefined) {
           this.setState({
             img: Matrix.m_download(this.props.user.hs, responseJson["og:image"]),
             h: responseJson["og:image:height"],
             w: responseJson["og:image:width"]
+          });
+        } else if (responseJson["og:site_name"] == "YouTube") {
+          console.log("youtube url found");
+          this.setState({
+            youtube: {
+              img: Matrix.m_download(this.props.user.hs, responseJson["og:image"]),
+              title: responseJson["og:title"],
+              desc: responseJson["og:description"],
+              h: responseJson["og:image:height"],
+              w: responseJson["og:image:width"]
+            }
           });
         }
       });
@@ -470,10 +556,21 @@ let LinkInfo = create({
   render: function() {
     if (this.state.img) {
       //<img className="link" src={this.state.img} style={{minHeight: this.state.h, minWidth: this.state.w}}/>
-      return(
+      return (
         <span>
           <a href={this.props.href} target="_blank">{this.props.children}</a><br/>
           {displayMedia("inline-image", this.props.sRef, this.state.img, this.state.img, this.state.h, this.state.w, "link")}
+        </span>
+      );
+    } else if (this.state.youtube) {
+      return (
+        <span>
+          <a href={this.props.href} target="_blank">
+            {this.props.children}
+            <b>{this.state.youtube.title}</b>
+            <span>{this.state.youtube.desc}</span>
+            {displayMedia("inline-image", this.props.sRef, null, this.state.youtube.img, this.state.h, this.state.w, "link")}
+          </a><br/>
         </span>
       );
     }
