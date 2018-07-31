@@ -8,6 +8,7 @@ const defaultValue = require('default-value');
 const Linkify = require('react-linkify').default;
 const rfetch = require('fetch-retry');
 const Parser = require('html-react-parser');
+const Autolinker = require('autolinker');
 const riot = require('../lib/riot-utils.js');
 
 const Scroll = require("react-scroll");
@@ -388,7 +389,7 @@ let Message = create({
     let formattedEventBody = event.content.formatted_body;
 
     if (formattedEventBody == undefined) {
-      formattedEventBody = event.content.body;
+      formattedEventBody = Autolinker.link(event.content.body);
     }
 
     formattedEventBody = riot.sanitize(formattedEventBody);
@@ -487,7 +488,7 @@ let UrlParse = create({
       return (
         <React.Fragment>
           <a href={this.props.domNode.attribs.href} target="_blank">
-            {Parser(this.props.domNode.children)}
+            {this.props.domNode.children[0].data}
           </a>
           <div className="youtubePreview">
             <b>{this.state.youtube.title}</b><br/>
@@ -500,7 +501,7 @@ let UrlParse = create({
       );
     }
 
-    return <a href={this.props.domNode.attribs.href}>{Parser(this.props.domNode.children)}</a>;
+    return <a href={this.props.domNode.attribs.href}>{this.props.domNode.children[0].data}</a>;
   }
 });
 

@@ -108,7 +108,7 @@ let Matrix = {
             newEvents[event.event_id] = event;
           });
 
-          let localRoom = this.parseEvents({}, newEvents);
+          let localRoom = this.parseEvents({}, newEvents, user);
 
           localRoom.notif = {unread: 0, highlight: 0};
 
@@ -189,24 +189,6 @@ let Matrix = {
     });
   },
 
-  getRoomName: function(user, roomId) {
-    return new Promise((resolve, reject) => {
-      let nameUrl = urllib.format(Object.assign({}, user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.name`,
-        query: {
-          access_token: user.access_token
-        }
-      }));
-
-
-      fetch(nameUrl)
-        .then(response => response.json()) //catch + reject
-        .then(responseJson => {
-          resolve(responseJson.name);
-        });
-    });
-  },
-
   getRoomDetails: function(user, roomId, localUsers) {
     return new Promise((resolve, reject) => {
       let partnerName;
@@ -226,12 +208,6 @@ let Matrix = {
         partnerAvatar = otherUser.img;
       }
 
-      //Promise.all([
-      //  this.getRoomName(user, roomId),
-      //  this.getRoomAvatar(user, roomId),
-      //  this.getRoomAliases(user, roomId)
-      //])
-      
       this.parseRoomState(user, roomId)
         .then((roomInfo) => {
           // Order of defaultValues:
@@ -266,46 +242,6 @@ let Matrix = {
           );
           let topic = roomInfo[3];
           resolve([displayName, avatar, topic]);
-        });
-    });
-  },
-
-  getRoomAvatar: function(user, roomId) {
-    return new Promise((resolve, reject) => {
-      let avatarUrl = urllib.format(Object.assign({}, user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.avatar`,
-        query: {
-          access_token: user.access_token
-        }
-      }));
-
-      fetch(avatarUrl)
-        .then(response => response.json())
-        .then(responseJson => {
-          if(responseJson.errcode == undefined) {
-            resolve(this.m_download(user.hs, responseJson.url));
-          }
-          resolve(undefined);
-        });
-    });
-  },
-
-  getRoomAliases: function(user, roomId) {
-    return new Promise((resolve, reject) => {
-      let canonicalAliasUrl = urllib.format(Object.assign({}, user.hs, {
-        pathname: `/_matrix/client/r0/rooms/${roomId}/state/m.room.canonical_alias`,
-        query: {
-          access_token: user.access_token
-        }
-      }));
-
-      fetch(canonicalAliasUrl)
-        .then(response => response.json())
-        .then(responseJson => {
-          if (responseJson.content != undefined) {
-            resolve(responseJson.content.alias);
-          }
-          resolve(undefined);
         });
     });
   },
@@ -369,7 +305,7 @@ let Matrix = {
                 newEvents[event.event_id] = event;
               });
   
-              localRoom = this.parseEvents(localRoom, newEvents);
+              localRoom = this.parseEvents(localRoom, newEvents, user);
   
               let unread = defaultValue(
                 remoteRoom.unread_notifications.notification_count,
@@ -398,8 +334,25 @@ let Matrix = {
     });
   },
 
-  parseEvents: function(room, newEvents) {
+  parseEvents: function(room, newEvents, user) {
     let oldEvents = defaultValue(room.events, {});
+
+    // pare state change events
+    let roomInfo = defaultValue(room.info, {});
+    Object.keys(newEvents).forEach((eventId) => {
+      let event = newEvents[eventId];
+      if (event.type === "m.room.member") {
+
+      } else if (event.type === "m.room.topic") {
+        roomInfo.topic = event.content.topic;
+      } else if (event.type === "m.room.name") {
+        roomInfo.name = event.content.name;
+      } else if (event.type === "m.room.avatar") {
+        roomInfo.avatar = this.m_download(user.hs, event.content.url);
+      }
+    });
+    room.info = roomInfo;
+
 
     let combinedEvents = Object.assign(
       {},
@@ -418,6 +371,7 @@ let Matrix = {
       events: combinedEvents,
       eventIndex: uniqueEventIndex
     });
+
 
     let lastEvent = {
       origin_server_ts: 0,

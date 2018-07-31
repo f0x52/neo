@@ -27,6 +27,7 @@
     "webpack-dev-server": "^3.1.4"
   },
   "dependencies": {
+    "autolinker": "^1.7.0",
     "bluebird": "^3.5.1",
     "blueimp-canvas-to-blob": "^3.14.0",
     "debounce": "^1.1.0",

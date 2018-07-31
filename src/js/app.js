@@ -266,7 +266,9 @@ let App = create({
               {this.state.localState.rooms[this.state.roomId].info.name}
             </b><br/>
             {usercount} member{usercount > 1 && "s"}<br/>
-            {this.state.localState.rooms[this.state.roomId].info.topic}
+            <span>
+              {this.state.localState.rooms[this.state.roomId].info.topic}
+            </span>
           </div>
           <RoomView {...this.state}
             backlog={this.getBacklog}

@@ -301,9 +301,20 @@ mx-reply {
   z-index: 2;
   background: $bg;
   padding-left: 5px;
+  color: darken($fg, 30);
+
+  b, span {
+    color: $fg;
+  }
 
   b {
     font-size: 120%;
+  }
+
+  span {
+    display: block;
+    background: $bg;
+    padding-bottom: 0.1rem;
   }
 }
 
