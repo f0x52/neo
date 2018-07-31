@@ -401,7 +401,7 @@ let Message = create({
       let parserOptions = {
         replace: (domNode) => {
           if (domNode.name == "a") {
-            return <UrlParse domNode={domNode} {...this.props}/>;
+            return <UrlParse domNode={domNode} ref={this.state.ref} {...this.props}/>;
           }
         }
       };
@@ -481,6 +481,10 @@ let UrlParse = create({
       return (
         <span>
           {this.props.children}<br/>
+          <a href={this.state.img}>
+            {this.props.domNode.attribs.href}
+            <img src={this.state.img} className="link"/>
+          </a>
           {displayMedia("inline-image", this.props.ref, this.state.img, this.state.img, this.state.h, this.state.w, "link")}
         </span>
       );
@@ -596,6 +600,7 @@ function sortByUsername(a, b) {
 
 function displayMedia(type, container, src, thumb, h, w, className) {
   if (container == null) {
+    console.log("returning null", src);
     return null;
   }
 
