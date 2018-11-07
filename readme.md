@@ -1,4 +1,6 @@
 # Neo
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ff0x52%2Fneo.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Ff0x52%2Fneo?ref=badge_shield)
+
 <a href="https://liberapay.com/f0x/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>  
 
 A [matrix](https://matrix.org) client, made from scratch using react.js  
@@ -35,3 +37,7 @@ https://t.me/joinchat/DRrEl1MS-6g0sCs2255UTA
 
 [telegram channel](https://t.me/neo_client)  
 [todo list](https://pad.lain.haus/pOyNngluQGuxFnl17awPKQ)  
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Ff0x52%2Fneo.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Ff0x52%2Fneo?ref=badge_large)
