@@ -1,3 +1,8 @@
+# THIS GITHUB PAGE HAS BEEN ARCHIVED
+# NEO DEVELOPMENT CONTINUES
+# https://neo.pixie.town
+# https://git.pixie.town/neo/neo
+
 # Neo
 <a href="https://liberapay.com/f0x/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a>  
 
